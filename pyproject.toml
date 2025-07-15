@@ -2,9 +2,6 @@
 name = "capture-flag-tests"
 version = "0.1.0"
 dependencies = [
-    "playwright",
-    "pytest",
-    "pytest-asyncio",
     "requests",
     "pillow",
     "fastmcp",
