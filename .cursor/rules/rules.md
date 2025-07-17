@@ -1,0 +1,2 @@
+IMPORTANT: Before addressing the user's request, read the README.md and make sure to understand the workflow!
+Always make a copy before making changes (see workflow section in README.md).
