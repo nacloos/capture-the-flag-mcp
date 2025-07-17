@@ -1,10 +1,26 @@
 {
   "capture-the-flag": {
-    "command": "go mod tidy && go run main.go",
+    "command": ["go mod tidy", "go run main.go"],
     "port": 8080
   },
   "bees-vs-flies": {
     "command": "uv run -m http.server 8081",
     "port": 8081
+  },
+  "bees-vs-flies-v2": {
+    "command": "uv run -m http.server 8082",
+    "port": 8082
+  },
+  "bees-vs-flies-v3": {
+    "command": "uv run -m http.server 8083",
+    "port": 8083
+  },
+  "bees-vs-flies-v4": {
+    "command": "uv run -m http.server 8084",
+    "port": 8084
+  },
+  "bees-vs-flies-v5": {
+    "command": "uv run -m http.server 8085",
+    "port": 8085
   }
 }

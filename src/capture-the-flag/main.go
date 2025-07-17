@@ -714,6 +714,6 @@ func main() {
 	fs := http.FileServer(http.Dir("./static/"))
 	http.Handle("/", fs)
 
-	fmt.Println("Server starting on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	fmt.Println("Server starting on localhost:8080")
+	log.Fatal(http.ListenAndServe("localhost:8080", nil))
 }

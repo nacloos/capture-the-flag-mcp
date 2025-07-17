@@ -88,7 +88,8 @@ Preferred settings for implementing games:
 * no html content outside game canvas unless specified otherwise
   * white bg and centered game canvas
   * instructions in game HUD
-* golang server for multiplayer games 
+* golang server for multiplayer games
+  * use `localhost:{port}` to prevent Windows firewall issues
 
 ### Python development
 When using Python:

@@ -5,6 +5,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const chokidar = require('chokidar');
 const kill = require('tree-kill');
+const killPort = require('kill-port');
 
 const app = express();
 const PORT = 3001;
@@ -62,6 +63,27 @@ function parseCommand(commandString) {
   };
 }
 
+// Execute setup commands sequentially
+async function executeSetupCommands(commands, cwd, env) {
+  for (let i = 0; i < commands.length - 1; i++) {
+    const { command, args } = parseCommand(commands[i]);
+    
+    const result = await new Promise((resolve, reject) => {
+      const process = spawn(command, args, { cwd, env });
+      
+      process.on('close', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`Setup command "${commands[i]}" failed with code ${code}`));
+        }
+      });
+      
+      process.on('error', reject);
+    });
+  }
+}
+
 // Get run configuration for a folder
 function getRunConfig(folderName, folderPath) {
   const runnersConfig = loadRunnersConfig();
@@ -85,9 +107,13 @@ function getRunConfig(folderName, folderPath) {
     };
   }
   
-  const { command, args } = parseCommand(config.command);
+  // Handle both string and array commands
+  const commands = Array.isArray(config.command) ? config.command : [config.command];
+  const mainCommand = commands[commands.length - 1];
+  const { command, args } = parseCommand(mainCommand);
   
   return {
+    commands,
     command,
     args,
     cwd: folderPath,
@@ -159,7 +185,7 @@ app.get('/api/scan', (req, res) => {
 });
 
 // POST /api/start/:name - Start a folder's server
-app.post('/api/start/:name', (req, res) => {
+app.post('/api/start/:name', async (req, res) => {
   const { name } = req.params;
   
   if (runningProcesses.has(name)) {
@@ -179,6 +205,14 @@ app.post('/api/start/:name', (req, res) => {
   try {
     // Merge environment variables
     const env = { ...process.env, ...runConfig.env };
+    
+    // Free the port if it's already in use
+    await killPort(runConfig.port).catch(() => {}); // Ignore errors
+    
+    // Run setup commands if there are multiple commands
+    if (runConfig.commands.length > 1) {
+      await executeSetupCommands(runConfig.commands, runConfig.cwd, env);
+    }
     
     const childProcess = spawn(runConfig.command, runConfig.args, {
       cwd: runConfig.cwd,
