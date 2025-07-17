@@ -2,12 +2,26 @@
   "name": "capture-the-flag-mcp",
   "version": "1.0.0",
   "description": "Capture the Flag MCP Demo",
+  "private": true,
+  "workspaces": [
+    "ui/client",
+    "ui/server"
+  ],
   "scripts": {
-    "test-page": "node test/test-page.js"
+    "test-page": "node test/test-page.js",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev:client": "npm run dev --workspace=ui/client",
+    "dev:server": "npm run dev --workspace=ui/server",
+    "build": "npm run build --workspace=ui/client",
+    "start": "npm run start --workspace=ui/server",
+    "install:all": "npm install && npm install --workspace=ui/client && npm install --workspace=ui/server"
   },
   "dependencies": {
     "playwright": "^1.54.1",
     "tree-kill": "^1.2.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   },
   "author": "",
   "license": "MIT"

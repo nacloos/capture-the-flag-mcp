@@ -31,35 +31,16 @@ This project showcases LLM agents playing capture the flag through MCP tools.
    uv --version
    ```
 
-4. **Install Playwright**
-   Install Playwright for browser automation:
+4. **Install all dependencies**
+   Install all dependencies (UI and test page):
    ```bash
-   npm install playwright
-   ```
-   
-   Check installation with:
-   ```bash
-   npx playwright --version
-   ```
-
-5. **Install UI dependencies**
-   Navigate to the UI directory and install dependencies:
-   ```bash
-   cd ui
    npm run install:all
-   ```
-
-6. **Install test page dependencies**
-   Install dependencies for the test page (from root directory):
-   ```bash
-   npm install
    ```
 
 ### Starting the UI
 Start the full-stack UI application:
 
 ```bash
-cd ui
 npm run dev
 ```
 
