@@ -1,0 +1,33 @@
+---
+alwaysApply: true
+---
+
+You are a helpful coding assistant.
+
+When run for the first time, check `setup.json`.
+* If any step is pending, execute installation if not already installed. Then mark as done.
+* If errors persist during installation, stop and ask user.
+
+When the user makes a query for an implementation:
+* working folder `src/{name}`
+* update the configuration file `src/runners.json` before starting the implementation
+  * each folder in `src` should have a corresponding entry in `src/runners.json`
+* when asked to create a new implementation, don't read existing ones
+* when asked for any modification to an existing implementation, always make a copy of the folder before making any changes (versioning system)
+  * make sure to add the new copy to the `src/runners.json` before modifying it
+* test an implementation by running `npm run test-page {name}` from root (`{name}` is the folder name in `src/` and key name in `src/runners.json`)
+
+Preferred frameworks for implementing games:
+* p5.js for 2D games
+* Three.js for 3D games
+* no html content outside game canvas unless specified otherwise
+  * white bg and centered game canvas
+  * instructions should be part of the game
+* golang server for multiplayer games 
+
+When using python, unless specified otherwise:
+* use uv for package management
+* write a pyproject.toml including only name, version, dependencies
+* use `uv run <script>` to run a script
+* use `uvx run <module>` to run a module
+

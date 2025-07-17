@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const chokidar = require('chokidar');
+const kill = require('tree-kill');
 
 const app = express();
 const PORT = 3001;
@@ -277,7 +278,7 @@ app.post('/api/stop/:name', (req, res) => {
   }
   
   try {
-    processInfo.process.kill('SIGTERM');
+    kill(processInfo.process.pid);
     runningProcesses.delete(name);
     res.json({ message: 'Stopped successfully' });
   } catch (error) {
@@ -335,6 +336,42 @@ app.get('/api/logs', (req, res) => {
   res.json({ logs: allLogs });
 });
 
+// DELETE /api/delete/:name - Delete a folder and update runners.json
+app.delete('/api/delete/:name', (req, res) => {
+  const { name } = req.params;
+  
+  const folderPath = path.join(SRC_PATH, name);
+  if (!fs.existsSync(folderPath)) {
+    return res.status(404).json({ error: 'Folder not found' });
+  }
+  
+  try {
+    // Stop process if it's running
+    const processInfo = runningProcesses.get(name);
+    if (processInfo) {
+      kill(processInfo.process.pid);
+      runningProcesses.delete(name);
+    }
+    
+    // Remove folder from filesystem
+    fs.rmSync(folderPath, { recursive: true, force: true });
+    
+    // Update runners.json
+    const runnersConfig = loadRunnersConfig();
+    if (runnersConfig[name]) {
+      delete runnersConfig[name];
+      fs.writeFileSync(RUNNERS_CONFIG_PATH, JSON.stringify(runnersConfig, null, 2));
+    }
+    
+    // Clean up logs
+    processLogs.delete(name);
+    
+    res.json({ message: 'Folder deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Watch for file system changes
 if (fs.existsSync(SRC_PATH)) {
   const watcher = chokidar.watch(SRC_PATH, {
@@ -347,13 +384,13 @@ if (fs.existsSync(SRC_PATH)) {
     console.log('New folder detected:', path);
   });
   
-  watcher.on('unlinkDir', (path) => {
-    console.log('Folder removed:', path);
-    const folderName = path.basename(path);
+  watcher.on('unlinkDir', (folderPath) => {
+    console.log('Folder removed:', folderPath);
+    const folderName = path.basename(folderPath);
     // Stop process if it was running
     const processInfo = runningProcesses.get(folderName);
     if (processInfo) {
-      processInfo.process.kill('SIGTERM');
+      kill(processInfo.process.pid);
       runningProcesses.delete(folderName);
     }
   });
@@ -363,7 +400,7 @@ if (fs.existsSync(SRC_PATH)) {
 process.on('SIGINT', () => {
   console.log('Stopping all running processes...');
   for (const [name, processInfo] of runningProcesses) {
-    processInfo.process.kill('SIGTERM');
+    kill(processInfo.process.pid);
   }
   process.exit(0);
 });

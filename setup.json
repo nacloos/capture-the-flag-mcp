@@ -1,0 +1,25 @@
+{
+  "setup_checklist": [
+    {
+      "step": "Install Go",
+      "check": "go version",
+      "status": "done"
+    },
+    {
+      "step": "Install Node.js",
+      "check": "node --version",
+      "status": "done"
+    },
+    {
+      "step": "Install uv",
+      "check": "uv --version",
+      "status": "done"
+    },
+    {
+      "step": "Install Playwright",
+      "check": "npx playwright --version",
+      "installation": "npm install playwright",
+      "status": "done"
+    }
+  ]
+}

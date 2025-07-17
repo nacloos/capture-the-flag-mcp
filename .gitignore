@@ -208,3 +208,15 @@ __marimo__/
 
 uv.lock
 go.sum
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn/
+package-lock.json
+yarn.lock
+
+
