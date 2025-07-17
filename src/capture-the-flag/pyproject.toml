@@ -1,0 +1,13 @@
+[project]
+name = "capture-flag-tests"
+version = "0.1.0"
+dependencies = [
+    "requests",
+    "pillow",
+    "fastmcp",
+    "websockets",
+    "dotenv",
+    "google-genai",
+    "anthropic",
+    "pydantic-ai"
+]
