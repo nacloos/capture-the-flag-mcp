@@ -1,0 +1,1545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Capture the Flag</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Professional Color Palette */
+            --primary-dark: #0a0a0f;
+            --primary-medium: #1a1a2e;
+            --primary-light: #16213e;
+            --accent-primary: #00f5ff;
+            --accent-secondary: #ff6b6b;
+            --red-team: #ff4757;
+            --blue-team: #3742fa;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --danger: #ff3838;
+            --text-primary: #ffffff;
+            --text-secondary: #a4b0be;
+            --text-muted: #747d8c;
+            --surface-primary: rgba(22, 33, 62, 0.9);
+            --surface-secondary: rgba(26, 26, 46, 0.8);
+            --surface-accent: rgba(0, 245, 255, 0.1);
+            --gradient-primary: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            --gradient-accent: linear-gradient(135deg, #00f5ff 0%, #3742fa 100%);
+            --shadow-primary: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --shadow-accent: 0 0 20px rgba(0, 245, 255, 0.3);
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --font-size-xs: 12px;
+            --font-size-sm: 14px;
+            --font-size-md: 16px;
+            --font-size-lg: 18px;
+            --font-size-xl: 24px;
+            --font-size-xxl: 32px;
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.3s ease;
+            --transition-slow: 0.5s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--gradient-primary);
+            font-family: 'Roboto', sans-serif;
+            color: var(--text-primary);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(0, 245, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(55, 66, 250, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .ui-panel {
+            background: var(--surface-primary);
+            border: 1px solid var(--accent-primary);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow-primary);
+            backdrop-filter: blur(10px);
+            padding: var(--spacing-sm);
+            transition: all var(--transition-normal);
+        }
+
+        .ui-panel:hover {
+            box-shadow: var(--shadow-accent);
+            border-color: var(--accent-secondary);
+        }
+
+
+        #controls {
+            position: absolute;
+            top: var(--spacing-md);
+            right: var(--spacing-md);
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        #controls h3 {
+            font-family: 'Orbitron', monospace;
+            font-size: var(--font-size-lg);
+            margin-bottom: var(--spacing-md);
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #controls .control-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: var(--spacing-sm);
+            padding: var(--spacing-sm);
+            background: var(--surface-secondary);
+            border-radius: var(--border-radius-sm);
+        }
+
+        #controls .control-key {
+            background: var(--accent-primary);
+            color: var(--primary-dark);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            border-radius: var(--border-radius-sm);
+            font-weight: 700;
+            font-size: var(--font-size-xs);
+            margin-right: var(--spacing-md);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        #joinPanel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--surface-primary);
+            border: 2px solid var(--accent-primary);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-accent);
+            padding: var(--spacing-xl);
+            z-index: 1001;
+            text-align: center;
+            min-width: 400px;
+            backdrop-filter: blur(20px);
+        }
+
+        #joinPanel h2 {
+            font-family: 'Orbitron', monospace;
+            font-size: var(--font-size-xxl);
+            font-weight: 900;
+            margin-bottom: var(--spacing-lg);
+            background: var(--gradient-accent);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        #joinPanel input, #joinPanel select {
+            display: block;
+            margin: var(--spacing-md) auto;
+            padding: var(--spacing-md);
+            width: 100%;
+            max-width: 300px;
+            border: 2px solid var(--accent-primary);
+            border-radius: var(--border-radius-md);
+            background: var(--surface-secondary);
+            color: var(--text-primary);
+            font-size: var(--font-size-md);
+            transition: all var(--transition-normal);
+        }
+
+        #joinPanel input:focus, #joinPanel select:focus {
+            outline: none;
+            border-color: var(--accent-secondary);
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
+        }
+
+        #joinPanel button {
+            display: block;
+            margin: var(--spacing-lg) auto 0;
+            padding: var(--spacing-md) var(--spacing-xl);
+            width: 100%;
+            max-width: 300px;
+            background: var(--gradient-accent);
+            border: none;
+            border-radius: var(--border-radius-md);
+            color: var(--text-primary);
+            font-size: var(--font-size-lg);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #joinPanel button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 245, 255, 0.4);
+        }
+
+        #joinPanel button:active {
+            transform: translateY(0);
+        }
+
+        #gameEndMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--surface-primary);
+            border: 3px solid var(--warning);
+            border-radius: var(--border-radius-lg);
+            padding: var(--spacing-xl);
+            text-align: center;
+            z-index: 1002;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-accent);
+        }
+
+        #gameEndMessage h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: 48px;
+            font-weight: 900;
+            margin-bottom: var(--spacing-md);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .player-status {
+            margin-top: var(--spacing-md);
+            padding: var(--spacing-md);
+            background: var(--surface-secondary);
+            border-radius: var(--border-radius-md);
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        .status-text {
+            font-size: var(--font-size-md);
+            font-weight: 500;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Chat Panel Styles */
+        #playerChatPanel {
+            position: absolute;
+            bottom: var(--spacing-md);
+            left: var(--spacing-md);
+            width: 350px;
+            height: 300px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #redTeamChatPanel {
+            position: absolute;
+            bottom: var(--spacing-md);
+            left: var(--spacing-md);
+            width: 300px;
+            height: 250px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #blueTeamChatPanel {
+            position: absolute;
+            bottom: var(--spacing-md);
+            right: var(--spacing-md);
+            width: 300px;
+            height: 250px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: var(--surface-secondary);
+            padding: var(--spacing-sm);
+            border-bottom: 1px solid var(--accent-primary);
+            border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+        }
+
+        .chat-header h4 {
+            font-family: 'Orbitron', monospace;
+            font-size: var(--font-size-md);
+            color: var(--accent-primary);
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--spacing-sm);
+            background: var(--surface-primary);
+            border-bottom: 1px solid var(--accent-primary);
+            max-height: 200px;
+        }
+
+        .chat-message {
+            margin-bottom: 6px;
+            padding: 4px 8px;
+            background: var(--surface-secondary);
+            border-radius: var(--border-radius-sm);
+            border-left: 2px solid var(--accent-primary);
+        }
+
+        .chat-message.red-team {
+            border-left-color: var(--red-team);
+        }
+
+        .chat-message.blue-team {
+            border-left-color: var(--blue-team);
+        }
+
+        .chat-header-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+
+        .chat-sender {
+            font-weight: 600;
+            font-size: 11px;
+            color: var(--accent-primary);
+        }
+
+        .chat-time {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .chat-text {
+            color: var(--text-primary);
+            font-size: 13px;
+            line-height: 1.3;
+            margin: 0;
+        }
+
+        .chat-input-container {
+            display: flex;
+            padding: var(--spacing-sm);
+            background: var(--surface-secondary);
+            border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
+        }
+
+        .chat-input-container input {
+            flex: 1;
+            padding: var(--spacing-sm);
+            border: 1px solid var(--accent-primary);
+            border-radius: var(--border-radius-sm);
+            background: var(--surface-primary);
+            color: var(--text-primary);
+            font-size: var(--font-size-sm);
+            margin-right: var(--spacing-sm);
+        }
+
+        .chat-input-container input:focus {
+            outline: none;
+            border-color: var(--accent-secondary);
+            box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.2);
+        }
+
+        .chat-input-container button {
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--gradient-accent);
+            border: none;
+            border-radius: var(--border-radius-sm);
+            color: var(--text-primary);
+            font-size: var(--font-size-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .chat-input-container button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0, 245, 255, 0.3);
+        }
+
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            #gameUI, #controls {
+                position: static;
+                margin: var(--spacing-sm);
+                width: auto;
+            }
+            
+            #joinPanel {
+                min-width: 90%;
+                margin: var(--spacing-md);
+            }
+
+            #playerChatPanel, #redTeamChatPanel, #blueTeamChatPanel {
+                position: static;
+                width: calc(100vw - 32px);
+                height: 200px;
+                margin: var(--spacing-sm);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="joinPanel">
+        <h2>Capture the Flag</h2>
+        <input type="text" id="playerName" placeholder="Enter your name" maxlength="20">
+        <select id="teamSelect">
+            <option value="red">Red Team</option>
+            <option value="blue">Blue Team</option>
+            <option value="spectator">Spectator (Watch Only)</option>
+        </select>
+        <button onclick="joinGame()">Join Game</button>
+    </div>
+    
+    
+    
+    <div id="gameEndMessage" class="hidden">
+        <h1></h1>
+    </div>
+
+    <!-- Chat Panel for Players (own team only) -->
+    <div id="playerChatPanel" class="ui-panel hidden">
+        <div class="chat-header">
+            <h4 id="playerChatTitle">Team Chat</h4>
+        </div>
+        <div id="playerChatMessages" class="chat-messages"></div>
+        <div class="chat-input-container">
+            <input type="text" id="chatInput" placeholder="Type message..." maxlength="200">
+            <button onclick="sendChatMessage()">Send</button>
+        </div>
+    </div>
+
+    <!-- Red Team Chat Panel for Spectators -->
+    <div id="redTeamChatPanel" class="ui-panel hidden">
+        <div class="chat-header">
+            <h4>Red Team Chat</h4>
+        </div>
+        <div id="redTeamMessages" class="chat-messages"></div>
+    </div>
+
+    <!-- Blue Team Chat Panel for Spectators -->
+    <div id="blueTeamChatPanel" class="ui-panel hidden">
+        <div class="chat-header">
+            <h4>Blue Team Chat</h4>
+        </div>
+        <div id="blueTeamMessages" class="chat-messages"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.min.js"></script>
+    <script>
+        let socket;
+        let gameState = {
+            players: {},
+            redFlag: null,
+            blueFlag: null,
+            redScore: 0,
+            blueScore: 0,
+            gameStarted: false
+        };
+        let myPlayer = null;
+        let myPlayerId = null;
+        let isSpectator = false;
+        let myTeam = null;
+        let keys = {};
+        let lastMoveTime = 0;
+        let lastAttackTime = 0;
+        let attacks = []; // Array to store attack animations
+        let particles = []; // Array to store particle effects
+        
+        // Logging function
+        function frontendLog(event, details) {
+            const now = new Date();
+            const timestamp = now.getFullYear() + '-' + 
+                            String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                            String(now.getDate()).padStart(2, '0') + ' ' + 
+                            String(now.getHours()).padStart(2, '0') + ':' + 
+                            String(now.getMinutes()).padStart(2, '0') + ':' + 
+                            String(now.getSeconds()).padStart(2, '0');
+            const logEntry = `${timestamp} component=frontend event=${event} ${details}`;
+            console.log(logEntry);
+        }
+        
+        // Game area constants
+        const GAME_WIDTH = 800;
+        const GAME_HEIGHT = 600;
+        let gameOffsetX = 0;
+        let gameOffsetY = 0;
+        
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            textAlign(CENTER, CENTER);
+            
+            // Calculate game area position (centered)
+            gameOffsetX = (width - GAME_WIDTH) / 2;
+            gameOffsetY = (height - GAME_HEIGHT) / 2;
+        }
+        
+        function draw() {
+            // Create dynamic background with gradient
+            for (let i = 0; i <= height; i++) {
+                let inter = map(i, 0, height, 0, 1);
+                let c = lerpColor(color(10, 10, 15), color(26, 26, 46), inter);
+                stroke(c);
+                line(0, i, width, i);
+            }
+            
+            // Draw game area border
+            stroke(0, 245, 255, 100);
+            strokeWeight(2);
+            noFill();
+            rect(gameOffsetX - 2, gameOffsetY - 2, GAME_WIDTH + 4, GAME_HEIGHT + 4);
+            
+            // Clip rendering to game area
+            push();
+            translate(gameOffsetX, gameOffsetY);
+            
+            // Add subtle grid pattern within game area
+            stroke(0, 245, 255, 20);
+            strokeWeight(1);
+            let gridSize = 50;
+            for (let x = 0; x < GAME_WIDTH; x += gridSize) {
+                line(x, 0, x, GAME_HEIGHT);
+            }
+            for (let y = 0; y < GAME_HEIGHT; y += gridSize) {
+                line(0, y, GAME_WIDTH, y);
+            }
+            
+            // For players: wait until game started AND player exists
+            // For spectators: only wait until game started
+            if (!gameState.gameStarted || (!isSpectator && !myPlayer)) {
+                fill(255);
+                textSize(32);
+                text("Waiting for game to start...", GAME_WIDTH/2, GAME_HEIGHT/2);
+                pop(); // End game area transform
+                return;
+            }
+            
+            // Check if game ended
+            if (gameState.gameEnded) {
+                fill(255, 255, 0);
+                textSize(48);
+                let message = "";
+                if (gameState.winner === "tie") {
+                    message = "GAME TIED!";
+                } else {
+                    message = `${gameState.winner.toUpperCase()} TEAM WINS!`;
+                }
+                text(message, GAME_WIDTH/2, GAME_HEIGHT/2);
+                
+                fill(255);
+                textSize(24);
+                text("Game Over", GAME_WIDTH/2, GAME_HEIGHT/2 + 60);
+                pop(); // End game area transform
+                return;
+            }
+            
+            // Draw bases
+            drawBases();
+            
+            // Draw walls
+            drawWalls();
+            
+            // Draw flags
+            drawFlags();
+            
+            // Draw players
+            drawPlayers();
+            
+            // Handle movement (only if game not ended)
+            if (!gameState.gameEnded) {
+                handleMovement();
+            }
+            
+            // Draw attack animations
+            drawAttacks();
+            
+            // Draw particle effects
+            drawParticles();
+            
+            // End game area transform
+            pop();
+            
+            // Draw canvas HUD
+            drawCanvasHUD();
+        }
+        
+        function drawBases() {
+            // Red base with modern styling
+            fill(255, 71, 87, 150);
+            stroke(255, 71, 87);
+            strokeWeight(2);
+            rect(20, GAME_HEIGHT/2 - 75, 160, 150, 8);
+            
+            // Red base glow effect
+            fill(255, 71, 87, 50);
+            noStroke();
+            rect(15, GAME_HEIGHT/2 - 80, 170, 160, 12);
+            
+            // Red base text
+            fill(255, 255, 255);
+            textSize(18);
+            textFont('Orbitron');
+            text("RED BASE", 100, GAME_HEIGHT/2);
+            
+            // Blue base with modern styling
+            fill(55, 66, 250, 150);
+            stroke(55, 66, 250);
+            strokeWeight(2);
+            rect(GAME_WIDTH - 180, GAME_HEIGHT/2 - 75, 160, 150, 8);
+            
+            // Blue base glow effect
+            fill(55, 66, 250, 50);
+            noStroke();
+            rect(GAME_WIDTH - 185, GAME_HEIGHT/2 - 80, 170, 160, 12);
+            
+            // Blue base text
+            fill(255, 255, 255);
+            textSize(18);
+            textFont('Orbitron');
+            text("BLUE BASE", GAME_WIDTH - 100, GAME_HEIGHT/2);
+        }
+        
+        function drawWalls() {
+            // Center wall obstacle (350-450 x, 250-350 y in game coordinates)
+            let wallLeft = map(350, 0, 800, 0, GAME_WIDTH);
+            let wallRight = map(450, 0, 800, 0, GAME_WIDTH);
+            let wallTop = map(250, 0, 600, 0, GAME_HEIGHT);
+            let wallBottom = map(350, 0, 600, 0, GAME_HEIGHT);
+            
+            let wallWidth = wallRight - wallLeft;
+            let wallHeight = wallBottom - wallTop;
+            
+            // Wall with modern styling
+            fill(100, 100, 100, 200);
+            stroke(150, 150, 150);
+            strokeWeight(3);
+            rect(wallLeft, wallTop, wallWidth, wallHeight, 8);
+            
+            // Wall glow effect
+            fill(120, 120, 120, 100);
+            noStroke();
+            rect(wallLeft - 5, wallTop - 5, wallWidth + 10, wallHeight + 10, 12);
+            
+            // Wall pattern/texture
+            stroke(80, 80, 80);
+            strokeWeight(1);
+            for (let i = 0; i < 3; i++) {
+                let lineX = wallLeft + (wallWidth / 4) * (i + 1);
+                line(lineX, wallTop + 10, lineX, wallBottom - 10);
+            }
+            for (let i = 0; i < 2; i++) {
+                let lineY = wallTop + (wallHeight / 3) * (i + 1);
+                line(wallLeft + 10, lineY, wallRight - 10, lineY);
+            }
+            
+            // Wall label
+            fill(200, 200, 200);
+            textSize(14);
+            textFont('Orbitron');
+            text("WALL", wallLeft + wallWidth/2, wallTop + wallHeight/2);
+        }
+        
+        function drawFlags() {
+            if (gameState.redFlag) {
+                let flag = gameState.redFlag;
+                let x = map(flag.x, 0, 800, 0, GAME_WIDTH);
+                let y = map(flag.y, 0, 600, 0, GAME_HEIGHT);
+                
+                // Flag pole
+                stroke(255, 71, 87);
+                strokeWeight(3);
+                line(x, y - 25, x, y + 5);
+                
+                // Flag with glow effect
+                fill(255, 71, 87, 200);
+                noStroke();
+                triangle(x + 2, y - 25, x + 2, y - 10, x + 20, y - 17);
+                
+                // Glow effect
+                fill(255, 71, 87, 100);
+                triangle(x, y - 27, x, y - 8, x + 22, y - 17);
+                
+                if (!flag.isAtBase) {
+                    fill(0, 245, 255);
+                    textSize(12);
+                    textFont('Orbitron');
+                    if (flag.carrier) {
+                        text("RED FLAG", x, y + 25);
+                    } else {
+                        text("RED FLAG (DROPPED)", x, y + 25);
+                        // Show return timer if dropped
+                        if (flag.dropTime > 0) {
+                            let timeLeft = Math.max(0, Math.ceil((30000 - (Date.now() - flag.dropTime)) / 1000));
+                            fill(255, 165, 2);
+                            textSize(10);
+                            text(`Returns in ${timeLeft}s`, x, y + 40);
+                        }
+                    }
+                }
+            }
+            
+            if (gameState.blueFlag) {
+                let flag = gameState.blueFlag;
+                let x = map(flag.x, 0, 800, 0, GAME_WIDTH);
+                let y = map(flag.y, 0, 600, 0, GAME_HEIGHT);
+                
+                // Flag pole
+                stroke(55, 66, 250);
+                strokeWeight(3);
+                line(x, y - 25, x, y + 5);
+                
+                // Flag with glow effect
+                fill(55, 66, 250, 200);
+                noStroke();
+                triangle(x + 2, y - 25, x + 2, y - 10, x + 20, y - 17);
+                
+                // Glow effect
+                fill(55, 66, 250, 100);
+                triangle(x, y - 27, x, y - 8, x + 22, y - 17);
+                
+                if (!flag.isAtBase) {
+                    fill(0, 245, 255);
+                    textSize(12);
+                    textFont('Orbitron');
+                    if (flag.carrier) {
+                        text("BLUE FLAG", x, y + 25);
+                    } else {
+                        text("BLUE FLAG (DROPPED)", x, y + 25);
+                        // Show return timer if dropped
+                        if (flag.dropTime > 0) {
+                            let timeLeft = Math.max(0, Math.ceil((30000 - (Date.now() - flag.dropTime)) / 1000));
+                            fill(255, 165, 2);
+                            textSize(10);
+                            text(`Returns in ${timeLeft}s`, x, y + 40);
+                        }
+                    }
+                }
+            }
+        }
+        
+        function drawPlayers() {
+            for (let playerId in gameState.players) {
+                let player = gameState.players[playerId];
+                let x = map(player.x, 0, 800, 0, GAME_WIDTH);
+                let y = map(player.y, 0, 600, 0, GAME_HEIGHT);
+                
+                // Check if player has spawn protection
+                let hasSpawnProtection = player.spawnProtection && Date.now() < player.spawnProtection;
+                
+                // Enhanced player visuals
+                if (!player.isAlive) {
+                    // Ghost effect for dead players
+                    fill(100, 100, 100, 150);
+                    noStroke();
+                    ellipse(x, y, 30, 30);
+                } else {
+                    // Player glow effect
+                    let teamColor = player.team === 'red' ? color(255, 71, 87) : color(55, 66, 250);
+                    
+                    if (hasSpawnProtection) {
+                        // Flashing protection effect
+                        let alpha = Math.sin(Date.now() * 0.01) * 100 + 155;
+                        fill(red(teamColor), green(teamColor), blue(teamColor), alpha);
+                    } else {
+                        fill(teamColor);
+                    }
+                    
+                    // Player body with modern styling
+                    noStroke();
+                    ellipse(x, y, 30, 30);
+                    
+                    // Inner highlight
+                    fill(255, 255, 255, 100);
+                    ellipse(x - 3, y - 3, 8, 8);
+                    
+                    // Team indicator border
+                    stroke(red(teamColor), green(teamColor), blue(teamColor));
+                    strokeWeight(2);
+                    noFill();
+                    ellipse(x, y, 34, 34);
+                    noStroke();
+                }
+                
+                // Draw spawn protection shield
+                if (hasSpawnProtection) {
+                    stroke(0, 245, 255);
+                    strokeWeight(3);
+                    noFill();
+                    ellipse(x, y, 45, 45);
+                    
+                    // Rotating shield effect
+                    let rotation = (Date.now() * 0.005) % (2 * Math.PI);
+                    for (let i = 0; i < 6; i++) {
+                        let angle = rotation + (i * Math.PI / 3);
+                        let shieldX = x + cos(angle) * 25;
+                        let shieldY = y + sin(angle) * 25;
+                        fill(0, 245, 255, 150);
+                        noStroke();
+                        ellipse(shieldX, shieldY, 4, 4);
+                    }
+                }
+                
+                // Draw player name with better styling
+                fill(255, 255, 255);
+                textSize(12);
+                textFont('Roboto');
+                text(player.name, x, y - 30);
+                
+                // Draw flag indicator
+                let statusY = y + 25;
+                if (player.hasFlag) {
+                    // Flag glow effect background
+                    for (let i = 0; i < 3; i++) {
+                        fill(0, 245, 255, 50 - i * 15);
+                        noStroke();
+                        ellipse(x, y + 15, 40 + i * 10, 8 + i * 2);
+                    }
+                    
+                    // Calculate text width for proper background sizing
+                    textSize(10);
+                    textFont('Orbitron');
+                    let flagText = "FLAG CARRIER";
+                    let flagTextWidth = textWidth(flagText);
+                    let flagBgWidth = flagTextWidth + 8;
+                    let flagBgHeight = 14;
+                    
+                    // Flag carrier text with background
+                    fill(0, 245, 255, 180);
+                    noStroke();
+                    rect(x - flagBgWidth/2, statusY - flagBgHeight/2, flagBgWidth, flagBgHeight, 4);
+                    
+                    fill(10, 10, 15);
+                    textAlign(CENTER, CENTER);
+                    text(flagText, x, statusY);
+                    
+                    statusY += 18; // Move next status down
+                }
+                
+                // Draw spawn protection timer
+                if (hasSpawnProtection) {
+                    let protectionTime = Math.max(0, Math.ceil((player.spawnProtection - Date.now()) / 1000));
+                    if (protectionTime > 0) {
+                        // Calculate text width for proper background sizing
+                        textSize(10);
+                        textFont('Orbitron');
+                        let protectionText = `PROTECTED ${protectionTime}s`;
+                        let protectionTextWidth = textWidth(protectionText);
+                        let protectionBgWidth = protectionTextWidth + 8;
+                        let protectionBgHeight = 14;
+                        
+                        // Protection text background
+                        fill(0, 245, 255, 180);
+                        noStroke();
+                        rect(x - protectionBgWidth/2, statusY - protectionBgHeight/2, protectionBgWidth, protectionBgHeight, 4);
+                        
+                        fill(10, 10, 15);
+                        textAlign(CENTER, CENTER);
+                        text(protectionText, x, statusY);
+                    }
+                }
+                
+                // Draw death timer
+                if (!player.isAlive) {
+                    let respawnTime = Math.max(0, Math.ceil((player.respawnTime - Date.now()) / 1000));
+                    if (respawnTime > 0) {
+                        fill(255, 56, 56);
+                        textSize(16);
+                        textFont('Orbitron');
+                        text(respawnTime, x, y);
+                    }
+                }
+            }
+        }
+        
+        
+        function handleMovement() {
+            // Spectators can't move or attack
+            if (isSpectator || !myPlayer || !myPlayer.isAlive) return;
+            
+            // Handle spacebar attack
+            if (keys[' '] || keys['Space']) {
+                let now = Date.now();
+                if (now - lastAttackTime > 500) { // Throttle attacks to 2 per second
+                    // Attack nearby enemies
+                    attackNearbyEnemies();
+                    lastAttackTime = now;
+                }
+            }
+        }
+        
+        function attackNearbyEnemies() {
+            if (!myPlayer || !myPlayer.isAlive) return;
+            
+            // Log user action
+            frontendLog("user_action", `action=attack details=position_${Math.round(myPlayer.x)},${Math.round(myPlayer.y)}`);
+            
+            // Send simple attack action - server handles enemy detection
+            sendAction({
+                type: 'attack'
+            });
+            
+            // Add attack animation from player position
+            let playerX = map(myPlayer.x, 0, 800, 0, GAME_WIDTH);
+            let playerY = map(myPlayer.y, 0, 600, 0, GAME_HEIGHT);
+            
+            // Create radial attack effect
+            attacks.push({
+                startX: playerX,
+                startY: playerY,
+                endX: playerX, // Radial attack, not targeted
+                endY: playerY,
+                time: Date.now(),
+                duration: 300
+            });
+            
+            // Add muzzle flash particles
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: playerX + random(-10, 10),
+                    y: playerY + random(-10, 10),
+                    vx: random(-3, 3),
+                    vy: random(-3, 3),
+                    life: 40,
+                    maxLife: 40,
+                    color: color(0, 245, 255, 200)
+                });
+            }
+        }
+        
+        function mousePressed() {
+            // Spectators can't move
+            if (isSpectator || !myPlayer || !myPlayer.isAlive || gameState.gameEnded) return;
+            
+            let gameX = map(mouseX - gameOffsetX, 0, GAME_WIDTH, 0, 800);
+            let gameY = map(mouseY - gameOffsetY, 0, GAME_HEIGHT, 0, 600);
+            
+            // Log user action
+            frontendLog("user_action", `action=move details=${Math.round(gameX)},${Math.round(gameY)}`);
+            
+            // Click to move to target position
+            sendAction({
+                type: 'move',
+                x: gameX,
+                y: gameY
+            });
+        }
+        
+        function drawAttacks() {
+            let now = Date.now();
+            
+            // Draw and update attacks
+            for (let i = attacks.length - 1; i >= 0; i--) {
+                let attack = attacks[i];
+                let elapsed = now - attack.time;
+                
+                if (elapsed > attack.duration) {
+                    attacks.splice(i, 1);
+                    continue;
+                }
+                
+                let alpha = map(elapsed, 0, attack.duration, 255, 0);
+                let radius = map(elapsed, 0, attack.duration, 10, 80);
+                
+                // Different colors for player vs other attacks
+                let attackColor = attack.isPlayerAttack ? 
+                    color(0, 245, 255) : color(255, 165, 0); // Cyan for player, orange for others
+                
+                // Radial attack effect
+                stroke(red(attackColor), green(attackColor), blue(attackColor), alpha);
+                strokeWeight(3);
+                noFill();
+                ellipse(attack.startX, attack.startY, radius, radius);
+                
+                // Inner ring
+                stroke(255, 255, 255, alpha * 0.8);
+                strokeWeight(1);
+                ellipse(attack.startX, attack.startY, radius * 0.7, radius * 0.7);
+                
+                // Add impact effect with modern styling
+                if (elapsed > attack.duration * 0.5) {
+                    let impactAlpha = map(elapsed, attack.duration * 0.5, attack.duration, 150, 0);
+                    
+                    // Multiple impact rings with attack color
+                    for (let j = 0; j < 3; j++) {
+                        fill(red(attackColor), green(attackColor), blue(attackColor), impactAlpha - j * 30);
+                        noStroke();
+                        ellipse(attack.startX, attack.startY, radius + j * 10, radius + j * 10);
+                    }
+                    
+                    // Central impact flash
+                    fill(255, 255, 255, impactAlpha);
+                    ellipse(attack.startX, attack.startY, 8, 8);
+                }
+            }
+            
+            noStroke();
+        }
+        
+        function drawParticles() {
+            // Draw and update particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let particle = particles[i];
+                
+                // Update particle
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.life--;
+                
+                if (particle.life <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+                
+                // Draw particle
+                let alpha = map(particle.life, 0, particle.maxLife, 0, 255);
+                fill(red(particle.color), green(particle.color), blue(particle.color), alpha);
+                noStroke();
+                ellipse(particle.x, particle.y, 4, 4);
+            }
+        }
+        
+        function addScoreParticles(x, y, particleColor) {
+            // Add celebration particles when team scores
+            for (let i = 0; i < 30; i++) {
+                particles.push({
+                    x: x + random(-60, 60),
+                    y: y + random(-60, 60),
+                    vx: random(-6, 6),
+                    vy: random(-10, -2),
+                    life: 80,
+                    maxLife: 80,
+                    color: particleColor
+                });
+            }
+            
+            // Add extra sparkle effects
+            for (let i = 0; i < 15; i++) {
+                particles.push({
+                    x: x + random(-40, 40),
+                    y: y + random(-40, 40),
+                    vx: random(-3, 3),
+                    vy: random(-6, -1),
+                    life: 120,
+                    maxLife: 120,
+                    color: color(0, 245, 255, 200)
+                });
+            }
+        }
+        
+        function keyPressed() {
+            keys[key] = true;
+            
+            // Log key press events for important keys
+            if (key === ' ' || key === 'Space') {
+                frontendLog("user_action", "action=key_press details=spacebar_attack");
+            }
+        }
+        
+        function keyReleased() {
+            keys[key] = false;
+        }
+        
+        function drawCanvasHUD() {
+            // Enhanced HUD with modern styling matching original design
+            
+            // Score panel in top-left
+            drawScorePanel();
+            
+            // Controls panel in top-right (only for players, not spectators)
+            if (!isSpectator) {
+                drawControlsPanel();
+            }
+            
+            textAlign(CENTER, CENTER); // Reset alignment
+        }
+        
+        function drawScorePanel() {
+            let panelWidth = 220;
+            let panelHeight = 140;
+            let panelX = 16;
+            let panelY = 16;
+            
+            // Panel background with blur effect simulation
+            fill(22, 33, 62, 200);
+            stroke(0, 245, 255);
+            strokeWeight(1);
+            rect(panelX, panelY, panelWidth, panelHeight, 8);
+            
+            // Panel glow effect
+            fill(0, 245, 255, 30);
+            noStroke();
+            rect(panelX - 2, panelY - 2, panelWidth + 4, panelHeight + 4, 10);
+            
+            // Score display
+            textAlign(LEFT, TOP);
+            fill(255, 71, 87);
+            textSize(16);
+            textFont('Orbitron');
+            text(`RED: ${gameState.redScore}`, panelX + 16, panelY + 20);
+            
+            fill(55, 66, 250);
+            text(`BLUE: ${gameState.blueScore}`, panelX + 16, panelY + 45);
+            
+            // Timer
+            if (gameState.gameStartTime && gameState.gameDuration) {
+                let elapsed = Date.now() - gameState.gameStartTime;
+                let remaining = Math.max(0, gameState.gameDuration - elapsed);
+                let minutes = Math.floor(remaining / 60000);
+                let seconds = Math.floor((remaining % 60000) / 1000);
+                
+                fill(255, 165, 0);
+                text(`TIME: ${minutes}:${seconds.toString().padStart(2, '0')}`, panelX + 16, panelY + 70);
+            }
+            
+            // Player status
+            if (isSpectator) {
+                fill(255, 255, 255);
+                textSize(12);
+                textFont('Roboto');
+                text('SPECTATOR', panelX + 16, panelY + 95);
+            } else if (myPlayer) {
+                fill(myPlayer.team === 'red' ? color(255, 71, 87) : color(55, 66, 250));
+                textSize(12);
+                textFont('Roboto');
+                let status = myPlayer.team.toUpperCase();
+                if (myPlayer.hasFlag) {
+                    status += ' - FLAG!';
+                }
+                if (!myPlayer.isAlive) {
+                    let respawnTime = Math.max(0, Math.ceil((myPlayer.respawnTime - Date.now()) / 1000));
+                    status += ` - RESPAWN ${respawnTime}s`;
+                }
+                text(status, panelX + 16, panelY + 95);
+            }
+            
+            // Player count
+            fill(164, 176, 190);
+            textSize(10);
+            textFont('Roboto');
+            text(`Players: ${Object.keys(gameState.players).length}`, panelX + 16, panelY + 115);
+        }
+        
+        function drawControlsPanel() {
+            let panelWidth = 280;
+            let panelHeight = 160;
+            let panelX = width - panelWidth - 16;
+            let panelY = 16;
+            
+            // Panel background with blur effect simulation
+            fill(22, 33, 62, 200);
+            stroke(0, 245, 255);
+            strokeWeight(1);
+            rect(panelX, panelY, panelWidth, panelHeight, 8);
+            
+            // Panel glow effect
+            fill(0, 245, 255, 30);
+            noStroke();
+            rect(panelX - 2, panelY - 2, panelWidth + 4, panelHeight + 4, 10);
+            
+            // Controls title
+            fill(0, 245, 255);
+            textSize(18);
+            textFont('Orbitron');
+            textAlign(LEFT, TOP);
+            text('CONTROLS', panelX + 16, panelY + 16);
+            
+            // Control items
+            let itemY = panelY + 45;
+            let itemSpacing = 28;
+            
+            // Control item backgrounds
+            fill(26, 26, 46, 180);
+            noStroke();
+            rect(panelX + 8, itemY - 4, panelWidth - 16, 20, 4);
+            rect(panelX + 8, itemY + itemSpacing - 4, panelWidth - 16, 20, 4);
+            rect(panelX + 8, itemY + itemSpacing * 2 - 4, panelWidth - 16, 20, 4);
+            
+            // Control keys and descriptions
+            textSize(12);
+            textFont('Roboto');
+            
+            // Click to move
+            fill(0, 245, 255);
+            rect(panelX + 16, itemY - 2, 50, 16, 4);
+            fill(10, 10, 15);
+            textAlign(CENTER, CENTER);
+            text('Click', panelX + 41, itemY + 6);
+            fill(255, 255, 255);
+            textAlign(LEFT, CENTER);
+            text('Move to position', panelX + 80, itemY + 6);
+            
+            // Space to attack
+            fill(0, 245, 255);
+            rect(panelX + 16, itemY + itemSpacing - 2, 50, 16, 4);
+            fill(10, 10, 15);
+            textAlign(CENTER, CENTER);
+            text('Space', panelX + 41, itemY + itemSpacing + 6);
+            fill(255, 255, 255);
+            textAlign(LEFT, CENTER);
+            text('Attack nearby enemies', panelX + 80, itemY + itemSpacing + 6);
+            
+            // Goal
+            fill(255, 165, 0);
+            rect(panelX + 16, itemY + itemSpacing * 2 - 2, 50, 16, 4);
+            fill(10, 10, 15);
+            textAlign(CENTER, CENTER);
+            text('Goal', panelX + 41, itemY + itemSpacing * 2 + 6);
+            fill(255, 255, 255);
+            textAlign(LEFT, CENTER);
+            text('Capture enemy flag and bring to base!', panelX + 80, itemY + itemSpacing * 2 + 6);
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+            gameOffsetX = (width - GAME_WIDTH) / 2;
+            gameOffsetY = (height - GAME_HEIGHT) / 2;
+        }
+        
+        function joinGame() {
+            let name = document.getElementById('playerName').value.trim();
+            let team = document.getElementById('teamSelect').value;
+            
+            if (!name) {
+                alert('Please enter your name');
+                return;
+            }
+            
+            // Log join game action
+            frontendLog("user_action", `action=join_game details=name=${name}_team=${team}`);
+            
+            // Set spectator mode and team
+            isSpectator = team === 'spectator';
+            myTeam = isSpectator ? null : team;
+            if (!isSpectator) {
+                myPlayerId = 'player_' + Date.now() + '_' + Math.random();
+            }
+            
+            // Hide join panel and show appropriate chat panel
+            document.getElementById('joinPanel').classList.add('hidden');
+            if (isSpectator) {
+                // Show both team chat panels for spectators
+                document.getElementById('redTeamChatPanel').classList.remove('hidden');
+                document.getElementById('blueTeamChatPanel').classList.remove('hidden');
+            } else {
+                // Show player's team chat panel
+                document.getElementById('playerChatPanel').classList.remove('hidden');
+                // Update chat title with team name
+                document.getElementById('playerChatTitle').textContent = `${team.toUpperCase()} Team Chat`;
+                // Set up Enter key listener for chat input
+                document.getElementById('chatInput').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        sendChatMessage();
+                    }
+                });
+            }
+            
+            // Connect to websocket
+            let wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            socket = new WebSocket(wsProtocol + '//' + window.location.host + '/ws');
+            
+            socket.onopen = function() {
+                frontendLog("websocket_connected", `url=${wsProtocol}//${window.location.host}/ws`);
+                // Only send join message for players, not spectators
+                if (!isSpectator) {
+                    socket.send(JSON.stringify({
+                        type: 'join',
+                        data: {
+                            id: myPlayerId,
+                            name: name,
+                            team: team
+                        }
+                    }));
+                }
+            };
+            
+            socket.onmessage = function(event) {
+                let previousState = gameState;
+                gameState = JSON.parse(event.data);
+                
+                
+                // Only set myPlayer for actual players, not spectators
+                if (!isSpectator && myPlayerId) {
+                    myPlayer = gameState.players[myPlayerId];
+                }
+                
+                // Check for score changes to trigger celebration particles
+                if (previousState.redScore !== gameState.redScore) {
+                    // Red team scored
+                    addScoreParticles(100, GAME_HEIGHT/2, color(255, 0, 0));
+                }
+                if (previousState.blueScore !== gameState.blueScore) {
+                    // Blue team scored
+                    addScoreParticles(GAME_WIDTH - 100, GAME_HEIGHT/2, color(0, 0, 255));
+                }
+                
+                // Update chat messages
+                updateChatMessages();
+                
+                // Check for new attack events by comparing player attack states
+                checkForAttackEvents(previousState, gameState);
+                
+                // UI updates now handled by canvas HUD
+                
+                // Show game end message
+                if (gameState.gameEnded) {
+                    let message = '';
+                    if (gameState.winner === 'tie') {
+                        message = 'GAME TIED!';
+                    } else {
+                        message = `${gameState.winner.toUpperCase()} TEAM WINS!`;
+                    }
+                    document.getElementById('gameEndMessage').querySelector('h1').textContent = message;
+                    document.getElementById('gameEndMessage').classList.remove('hidden');
+                } else {
+                    document.getElementById('gameEndMessage').classList.add('hidden');
+                }
+            };
+            
+            socket.onclose = function() {
+                frontendLog("websocket_error", "error=connection_lost");
+                alert('Connection lost. Please refresh the page.');
+            };
+            
+            socket.onerror = function(error) {
+                frontendLog("websocket_error", `error=websocket_error_${error.type || 'unknown'}`);
+            };
+        }
+        
+        function sendAction(action) {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({
+                    type: 'action',
+                    data: {
+                        playerId: myPlayerId,
+                        action: action
+                    }
+                }));
+            }
+        }
+
+        function sendChatMessage() {
+            if (isSpectator) return; // Spectators can't send messages
+            
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Log chat action
+            frontendLog("user_action", `action=chat details=message_sent`);
+            
+            // Send chat action
+            sendAction({
+                type: 'chat',
+                message: message
+            });
+            
+            // Clear input
+            input.value = '';
+        }
+
+        function updateChatMessages() {
+            if (isSpectator) {
+                // Update both team chats for spectators
+                updateSpectatorTeamChat('red', gameState.redTeamMessages || []);
+                updateSpectatorTeamChat('blue', gameState.blueTeamMessages || []);
+            } else if (myTeam) {
+                // Update only own team chat for players
+                const messages = myTeam === 'red' ? 
+                    gameState.redTeamMessages || [] : 
+                    gameState.blueTeamMessages || [];
+                updatePlayerChat(messages);
+            }
+        }
+
+        function updatePlayerChat(messages) {
+            const container = document.getElementById('playerChatMessages');
+            container.innerHTML = '';
+            
+            messages.slice(-10).forEach(msg => {
+                const messageEl = createChatMessage(msg, myTeam);
+                container.appendChild(messageEl);
+            });
+            
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateSpectatorTeamChat(team, messages) {
+            const containerId = team === 'red' ? 'redTeamMessages' : 'blueTeamMessages';
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            messages.slice(-10).forEach(msg => {
+                const messageEl = createChatMessage(msg, team);
+                container.appendChild(messageEl);
+            });
+            
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function createChatMessage(msg, team) {
+            const messageEl = document.createElement('div');
+            messageEl.className = `chat-message ${team}-team`;
+            
+            // Header line with sender and time
+            const headerEl = document.createElement('div');
+            headerEl.className = 'chat-header-line';
+            
+            const senderEl = document.createElement('span');
+            senderEl.className = 'chat-sender';
+            senderEl.textContent = msg.sender;
+            
+            const timeEl = document.createElement('span');
+            timeEl.className = 'chat-time';
+            timeEl.textContent = formatMessageTime(msg.timestamp);
+            
+            headerEl.appendChild(senderEl);
+            headerEl.appendChild(timeEl);
+            
+            // Message text
+            const textEl = document.createElement('div');
+            textEl.className = 'chat-text';
+            textEl.textContent = msg.message;
+            
+            messageEl.appendChild(headerEl);
+            messageEl.appendChild(textEl);
+            
+            return messageEl;
+        }
+
+        function formatMessageTime(timestamp) {
+            const now = Date.now();
+            const diff = now - timestamp;
+            const seconds = Math.floor(diff / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            
+            if (seconds < 10) return 'now';
+            if (seconds < 60) return `${seconds}s`;
+            if (minutes < 60) return `${minutes}m`;
+            if (hours < 24) return `${hours}h`;
+            
+            // Show actual time for older messages
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function checkForAttackEvents(previousState, currentState) {
+            // Look for players who just died (likely from attacks)
+            for (let playerId in currentState.players) {
+                const currentPlayer = currentState.players[playerId];
+                const previousPlayer = previousState.players && previousState.players[playerId];
+                
+                // If player was alive before and is now dead, someone attacked them
+                if (previousPlayer && previousPlayer.isAlive && !currentPlayer.isAlive) {
+                    // Find potential attackers (players near the victim)
+                    for (let attackerId in currentState.players) {
+                        const attacker = currentState.players[attackerId];
+                        if (attacker.id === currentPlayer.id || !attacker.isAlive) continue;
+                        if (attacker.team === currentPlayer.team) continue; // Same team
+                        
+                        // Check if attacker is within attack range of victim
+                        const dx = attacker.x - currentPlayer.x;
+                        const dy = attacker.y - currentPlayer.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (distance <= 50) { // Attack range
+                            // Create attack animation from attacker to victim
+                            createAttackAnimation(attacker, currentPlayer);
+                            break; // Only show one attack animation per death
+                        }
+                    }
+                }
+            }
+        }
+
+        function createAttackAnimation(attacker, victim) {
+            let attackerX = map(attacker.x, 0, 800, 0, GAME_WIDTH);
+            let attackerY = map(attacker.y, 0, 600, 0, GAME_HEIGHT);
+            let victimX = map(victim.x, 0, 800, 0, GAME_WIDTH);
+            let victimY = map(victim.y, 0, 600, 0, GAME_HEIGHT);
+            
+            // Create radial attack effect at attacker position
+            attacks.push({
+                startX: attackerX,
+                startY: attackerY,
+                endX: attackerX, // Radial attack
+                endY: attackerY,
+                time: Date.now(),
+                duration: 300,
+                isPlayerAttack: attacker.id === myPlayerId
+            });
+            
+            // Add muzzle flash particles at attacker
+            for (let i = 0; i < 8; i++) {
+                particles.push({
+                    x: attackerX + random(-10, 10),
+                    y: attackerY + random(-10, 10),
+                    vx: random(-3, 3),
+                    vy: random(-3, 3),
+                    life: 40,
+                    maxLife: 40,
+                    color: color(0, 245, 255, 200)
+                });
+            }
+            
+            // Add impact particles at victim
+            for (let i = 0; i < 12; i++) {
+                particles.push({
+                    x: victimX + random(-15, 15),
+                    y: victimY + random(-15, 15),
+                    vx: random(-4, 4),
+                    vy: random(-4, 4),
+                    life: 60,
+                    maxLife: 60,
+                    color: color(255, 107, 107, 200)
+                });
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "capture-the-flag": {
+    "command": "go run main.go",
+    "port": 8080
+  },
+  "capture-the-flag copy": {
+    "command": "go run main.go",
+    "port": 8080
+  }
+}
