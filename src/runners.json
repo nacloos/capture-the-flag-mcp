@@ -4,15 +4,15 @@
     "port": 8080
   },
   "bees-vs-flies": {
-    "command": "python -m http.server 8081",
+    "command": "uv run -m http.server 8081",
     "port": 8081
   },
   "cosmic-defense": {
-    "command": "python -m http.server 8083",
+    "command": "uv run -m http.server 8083",
     "port": 8083
   },
   "cosmic-defense-v2": {
-    "command": "python -m http.server 8085",
+    "command": "uv run -m http.server 8085",
     "port": 8085
   }
 }

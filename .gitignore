@@ -219,4 +219,7 @@ yarn-error.log*
 package-lock.json
 yarn.lock
 
+# Test screenshots
+test/screenshots/
+
 

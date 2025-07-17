@@ -1,63 +1,117 @@
 # Capture the Flag MCP Demo
 This project showcases LLM agents playing capture the flag through MCP tools.
 
-## Installation
-The game server is implement in Go. Download and install go at https://golang.org/doc/install.
+## Getting started
+### Installation
 
-Install [uv](https://docs.astral.sh/uv) for Python package management:
+1. **Install Go**
+   Download and install Go at https://golang.org/doc/install.
+   
+   Check installation with:
+   ```bash
+   go version
+   ```
+
+2. **Install Node.js**
+   Download and install Node.js at https://nodejs.org/
+   
+   Check installation with:
+   ```bash
+   node --version
+   ```
+
+3. **Install uv**
+   Install [uv](https://docs.astral.sh/uv) for Python package management:
+   ```bash
+   pip install uv
+   ```
+   
+   Check installation with:
+   ```bash
+   uv --version
+   ```
+
+4. **Install Playwright**
+   Install Playwright for browser automation:
+   ```bash
+   npm install playwright
+   ```
+   
+   Check installation with:
+   ```bash
+   npx playwright --version
+   ```
+
+5. **Install UI dependencies**
+   Navigate to the UI directory and install dependencies:
+   ```bash
+   cd ui
+   npm run install:all
+   ```
+
+6. **Install test page dependencies**
+   Install dependencies for the test page (from root directory):
+   ```bash
+   npm install
+   ```
+
+### Starting the UI
+Start the full-stack UI application:
+
 ```bash
-pip install uv
+cd ui
+npm run dev
 ```
 
-Install go dependencies:
-```bash
-go mod tidy
-```
+This will start both the React client (typically on http://localhost:5173) and the Node.js server concurrently.
 
 ## Structure
 
-- `main.go`: Game server handling WebSocket connections and game logic
-- `static/index.html`: Web client 
-- `mcp_server.py`: MCP server providing tools to play the game
-- `mcp_client.py`: MCP client to play the game with LLMs
+The project follows a modular structure where each game/implementation lives in its own folder:
 
-## Usage
-### Play the game yourself
-Run the game server:
 ```
-go run main.go
-```
-Open http://localhost:8080 in a browser to play the game.
-
-### LLM agents playing the game
-This requires a LLM API key. 
-Copy `.env.example` to `.env` and add your API key.
-
-Run the MCP client script to start the game server and the agents:
-```
-uv run mcp_client.py
+src/
+├── runners.json          # Configuration for all implementations
+└── capture-the-flag/     # Example Go-based multiplayer CTF game
 ```
 
-You can join the game at http://localhost:8080.
-
-
-## Setting up Claude Code
-Run the following command to install Claude Code:
-```bash
-npm install -g @anthropic-ai/claude-code
-```
-If you get a `npm: command not found` error, you need to install nodejs: https://nodejs.org/en/download.
-
-See https://docs.anthropic.com/en/docs/claude-code/setup for more information.
-
-Start Claude Code with the `claude` command in a terminal.
-
-By default Claude Code always asks permissions before executing an action, start Claude Code with the following command to disable that:
-```
-claude --dangerously-skip-permissions
+### Configuration format
+`src/runners.json`
+```json
+{
+  "folder-name": {
+    "command": "start command",
+    "port": 8080
+  }
+}
 ```
 
-To run Claude Code with an API key:
-1. Login to your personal account (prompted when running `claude` for the first time).
-2. Run Claude Code in a folder with ANTHROPIC_API_KEY set as environment variable (for example, with a `.env` file at the root of the folder where claude code is run). Claude Code should automatically detect the API key and ask whether to use it or not.
+## Workflow
 
+### Creating a new implementation
+1. **Update configuration**: add entry to `src/runners.json` before starting implementation
+2. **Create working folder**: create `src/{name}` directory
+3. **Implement**: no need to read existing implementations when creating a new one
+4. **Test implementation**: run `npm run test-page {name}`
+
+### Modifying existing implementation
+1. **Create version copy**: always copy the folder before modifications (versioning system)
+2. **Update configuration**: add new copy to `src/runners.json`
+3. **Make changes**: modify the copied version
+4. **Test**: run `npm run test-page {new-name}`
+
+### Game development
+Preferred settings for implementing games:
+* p5.js for 2D games
+* Three.js for 3D games
+* no html content outside game canvas unless specified otherwise
+  * white bg and centered game canvas
+  * instructions in game HUD
+* golang server for multiplayer games 
+
+### Python development
+When using Python:
+- Use `uv` for package management
+- Write `pyproject.toml` with only name, version, dependencies (unless specified otherwise)
+- Run scripts with `uv run <script>`
+- Example: running http server with python `uv run -m http.server 8000`

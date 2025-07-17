@@ -116,7 +116,11 @@ async function testWebPage() {
     const loadTime = Date.now() - startTime;
     
     // Take screenshot
-    const screenshotPath = path.join(process.cwd(), 'test', `${folderName}-screenshot.png`);
+    const screenshotDir = path.join(process.cwd(), 'test', 'screenshots');
+    if (!fs.existsSync(screenshotDir)) {
+      fs.mkdirSync(screenshotDir, { recursive: true });
+    }
+    const screenshotPath = path.join(screenshotDir, `${folderName}-screenshot.png`);
     await page.screenshot({ path: screenshotPath });
     
     // Wait a bit for any dynamic content
