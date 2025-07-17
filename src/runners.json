@@ -1,6 +1,6 @@
 {
   "capture-the-flag": {
-    "command": "go run main.go",
+    "command": "go mod tidy && go run main.go",
     "port": 8080
   },
   "bees-vs-flies": {
