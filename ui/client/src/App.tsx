@@ -287,7 +287,7 @@ function App() {
                 key={folder.name}
                 className={`flex items-center justify-between py-0.5 px-1 cursor-pointer transition-colors rounded ${
                   selectedFolder === folder.name
-                    ? 'bg-gray-100'
+                    ? 'bg-gray-200'
                     : ''
                 }`}
                 onClick={(e) => {
@@ -297,10 +297,14 @@ function App() {
                     setSelectedFolder(null);
                   } else {
                     setSelectedFolder(folder.name);
+                    // Auto-start server if not already running
+                    if (folder.status === 'stopped') {
+                      handleStart(folder.name);
+                    }
                   }
                 }}
               >
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 ml-1">
                   <div className="text-sm font-medium">{folder.name}</div>
                   {folder.status === 'error' && (
                     <div className="text-xs text-red-500" title={folder.error}>
@@ -308,7 +312,8 @@ function App() {
                     </div>
                   )}
                 </div>
-                <Button
+                {/* Start/Stop button commented out - auto-start on selection */}
+                {/* <Button
                   variant="ghost"
                   size="sm"
                   onClick={(e) => {
@@ -320,7 +325,7 @@ function App() {
                   title={folder.status === 'error' ? folder.error : ''}
                 >
                   {getButtonIcon(folder)}
-                </Button>
+                </Button> */}
               </div>
             ))
           )}
@@ -343,7 +348,7 @@ function App() {
                 {selectedFolder 
                   ? selectedFolderData?.status === 'starting' 
                     ? 'Starting...'
-                    : 'Click play to run this folder'
+                    : 'Server will start automatically...'
                   : 'Select a folder to view'
                 }
               </p>
