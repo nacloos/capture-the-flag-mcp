@@ -40,6 +40,16 @@ app.get('/favicon.ico', (req, res) => {
 // Path to the src directory containing runnable folders
 const SRC_PATH = path.resolve(__dirname, '../../../src');
 const RUNNERS_CONFIG_PATH = path.join(SRC_PATH, 'runners.json');
+const LOG_DIR = path.join(__dirname, '../../../logs');
+
+// Ensure log directory exists for a folder
+function ensureLogDir(folderName) {
+  const folderLogDir = path.join(LOG_DIR, folderName);
+  if (!fs.existsSync(folderLogDir)) {
+    fs.mkdirSync(folderLogDir, { recursive: true });
+  }
+  return folderLogDir;
+}
 
 // Load runners configuration
 function loadRunnersConfig() {
@@ -254,6 +264,16 @@ app.post('/api/start/:name', async (req, res) => {
           if (events.length > 100) {
             gameEvents.set(name, events.slice(-100));
           }
+          
+          // Write to file
+          const logDir = ensureLogDir(name);
+          const logFile = path.join(logDir, 'game-events.jsonl');
+          const logEntry = JSON.stringify({
+            timestamp: new Date().toISOString(),
+            folder: name,
+            event: event
+          }) + '\n';
+          fs.appendFileSync(logFile, logEntry);
         } catch (error) {
           console.error('Failed to parse game event:', error);
         }
@@ -396,9 +416,10 @@ app.get('/api/logs', (req, res) => {
 // POST /api/game-event - Receive game event from browser
 app.post('/api/game-event', (req, res) => {
   try {
-    const event = req.body;
-    const folderName = 'browser-game'; // Default folder name for browser games
+    const { folder, event } = req.body;
+    const folderName = folder || 'browser-game';
     
+    // Store in memory
     if (!gameEvents.has(folderName)) {
       gameEvents.set(folderName, []);
     }
@@ -410,6 +431,16 @@ app.post('/api/game-event', (req, res) => {
     if (events.length > 100) {
       gameEvents.set(folderName, events.slice(-100));
     }
+    
+    // Save to file
+    const logDir = ensureLogDir(folderName);
+    const logFile = path.join(logDir, 'game-events.jsonl');
+    const logEntry = JSON.stringify({
+      timestamp: new Date().toISOString(),
+      folder: folderName,
+      event: event
+    }) + '\n';
+    fs.appendFileSync(logFile, logEntry);
     
     res.json({ success: true });
   } catch (error) {

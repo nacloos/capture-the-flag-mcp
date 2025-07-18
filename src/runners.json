@@ -30,5 +30,25 @@
   "platformer": {
     "command": "npx http-server -c-1 -p 8087",
     "port": 8087
+  },
+  "platformer-v2": {
+    "command": "npx http-server -c-1 -p 8088",
+    "port": 8088
+  },
+  "platformer-v3": {
+    "command": "npx http-server -c-1 -p 8089",
+    "port": 8089
+  },
+  "platformer-v4": {
+    "command": "npx http-server -c-1 -p 8090",
+    "port": 8090
+  },
+  "platformer-v5": {
+    "command": "npx http-server -c-1 -p 8091",
+    "port": 8091
+  },
+  "platformer-v6": {
+    "command": "npx http-server -c-1 -p 8092",
+    "port": 8092
   }
 }

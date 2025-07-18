@@ -9,6 +9,9 @@ let gameTime = 0;
 let score = 0;
 let keys = {};
 let lastEventTime = 0;
+let gameState = 'playing'; // 'playing', 'won', 'lost'
+let totalCollectibles = 0;
+let winCondition = 'collect_all'; // 'collect_all', 'survive_time', 'reach_end'
 
 const WORLD_WIDTH = 3000;
 const WORLD_HEIGHT = 1200;
@@ -154,8 +157,20 @@ class Player {
                     itemY: item.y,
                     playerX: this.x,
                     playerY: this.y,
-                    newScore: score
+                    newScore: score,
+                    remaining: collectibles.length
                 });
+                
+                // Check win condition
+                if (collectibles.length === 0 && winCondition === 'collect_all') {
+                    gameState = 'won';
+                    sendGameEvent('game_victory', {
+                        winCondition: 'collect_all',
+                        finalScore: score,
+                        timeToComplete: gameTime,
+                        finalHealth: this.health
+                    });
+                }
             }
         }
     }
@@ -462,15 +477,41 @@ function setup() {
     camera = new Camera();
     
     generateWorld();
+    totalCollectibles = collectibles.length;
     
     sendGameEvent('game_start', {
         playerX: player.x,
         playerY: player.y,
         worldWidth: WORLD_WIDTH,
         worldHeight: WORLD_HEIGHT,
-        totalCollectibles: collectibles.length,
-        totalEnemies: enemies.length
+        totalCollectibles: totalCollectibles,
+        totalEnemies: enemies.length,
+        winCondition: winCondition
     });
+}
+
+function checkWinConditions() {
+    // Reach end of world
+    if (player.x >= WORLD_WIDTH - 100) {
+        gameState = 'won';
+        sendGameEvent('game_victory', {
+            winCondition: 'reach_end',
+            finalScore: score,
+            timeToComplete: gameTime,
+            finalHealth: player.health
+        });
+    }
+    
+    // Survival time (2 minutes)
+    if (gameTime >= 7200) {
+        gameState = 'won';
+        sendGameEvent('game_victory', {
+            winCondition: 'survive_time',
+            finalScore: score,
+            timeToComplete: gameTime,
+            finalHealth: player.health
+        });
+    }
 }
 
 function generateWorld() {
@@ -507,21 +548,28 @@ function draw() {
     background(5, 5, 20);
     gameTime++;
     
-    // Update
-    player.update();
-    camera.update();
-    
-    // Send periodic position updates (throttled)
-    if (gameTime % 60 === 0) {
-        sendGameEvent('player_position', {
-            x: player.x,
-            y: player.y,
-            vx: player.vx,
-            vy: player.vy,
-            health: player.health,
-            score: score,
-            gameTime: gameTime
-        });
+    // Only update game if still playing
+    if (gameState === 'playing') {
+        // Update
+        player.update();
+        camera.update();
+        
+        // Check additional win conditions
+        checkWinConditions();
+        
+        // Send periodic position updates (throttled)
+        if (gameTime % 60 === 0) {
+            sendGameEvent('player_position', {
+                x: player.x,
+                y: player.y,
+                vx: player.vx,
+                vy: player.vy,
+                health: player.health,
+                score: score,
+                gameTime: gameTime,
+                collectiblesRemaining: collectibles.length
+            });
+        }
     }
     
     for (let platform of platforms) {
@@ -601,17 +649,47 @@ function drawHUD() {
     fill(0, 255, 0);
     rect(20, 20, (player.health / 100) * 200, 20);
     
-    // Score
+    // Score and progress
     fill(0, 255, 255);
     textSize(20);
     text(`Score: ${score}`, 20, 60);
     
-    // Instructions
-    fill(255, 255, 255, 150);
+    // Progress indicators
+    fill(255, 255, 0);
+    textSize(16);
+    text(`Stars: ${totalCollectibles - collectibles.length}/${totalCollectibles}`, 20, 85);
+    
+    // Time
+    let minutes = Math.floor(gameTime / 3600);
+    let seconds = Math.floor((gameTime % 3600) / 60);
+    text(`Time: ${minutes}:${seconds.toString().padStart(2, '0')}`, 20, 110);
+    
+    // Win conditions
+    fill(255, 255, 255, 180);
     textSize(14);
-    text("WASD/Arrow Keys: Move & Jump", 20, height - 60);
-    text("S: Dash (cooldown)", 20, height - 40);
-    text("Collect stars, avoid red enemies!", 20, height - 20);
+    text("WIN CONDITIONS:", 20, height - 120);
+    text("• Collect all 50 stars", 20, height - 100);
+    text("• Reach the end of the world", 20, height - 80);
+    text("• Survive for 2 minutes", 20, height - 60);
+    
+    // Controls
+    fill(255, 255, 255, 150);
+    textSize(12);
+    text("WASD/Arrow Keys: Move & Jump | S: Dash", 20, height - 20);
+    
+    // Victory message
+    if (gameState === 'won') {
+        fill(0, 255, 0, 200);
+        rect(width/2 - 150, height/2 - 50, 300, 100);
+        fill(255, 255, 255);
+        textAlign(CENTER);
+        textSize(24);
+        text("VICTORY!", width/2, height/2 - 20);
+        textSize(16);
+        text(`Final Score: ${score}`, width/2, height/2 + 10);
+        text(`Time: ${Math.floor(gameTime/3600)}:${Math.floor((gameTime%3600)/60).toString().padStart(2,'0')}`, width/2, height/2 + 30);
+        textAlign(LEFT);
+    }
     
     // Dash cooldown indicator
     if (player.dashCooldown > 0) {

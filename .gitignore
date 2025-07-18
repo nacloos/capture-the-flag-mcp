@@ -221,4 +221,4 @@ yarn.lock
 # Test screenshots
 test/screenshots/
 
-
+logs/

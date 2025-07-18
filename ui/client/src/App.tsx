@@ -69,10 +69,29 @@ function App() {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data.type === 'GAME_EVENT') {
-        setGameEvents(prev => [...prev.slice(-99), { 
+        const gameEvent = { 
           ...event.data.event, 
           folder: selectedFolder 
-        }]);
+        };
+        
+        // Display in UI
+        setGameEvents(prev => [...prev.slice(-99), gameEvent]);
+        
+        // Forward to server for logging
+        if (selectedFolder) {
+          fetch(`${API_BASE}/game-event`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              folder: selectedFolder,
+              event: event.data.event
+            })
+          }).catch(error => {
+            console.error('Failed to send event to server:', error);
+          });
+        }
       }
     };
 

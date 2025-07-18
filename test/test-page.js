@@ -4,6 +4,7 @@ const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const kill = require('tree-kill');
+const killPort = require('kill-port');
 
 // Get folder name from command line argument
 const folderName = process.argv[2];
@@ -40,6 +41,9 @@ async function testWebPage() {
   try {
     // Import playwright
     const { chromium } = require('playwright');
+    
+    // Free the port if it's already in use
+    await killPort(config.port).catch(() => {}); // Ignore errors
     
     // Start server process
     console.log('Starting server...');

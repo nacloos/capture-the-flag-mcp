@@ -9,6 +9,10 @@ let gameTime = 0;
 let score = 0;
 let keys = {};
 let lastEventTime = 0;
+let gameState = 'playing'; // 'playing', 'won', 'lost'
+let totalCollectibles = 0;
+let winCondition = 'collect_all'; // 'collect_all', 'survive_time', 'reach_end'
+let gates = []; // Barriers that require collections to pass
 
 const WORLD_WIDTH = 3000;
 const WORLD_HEIGHT = 1200;
@@ -84,8 +88,14 @@ class Player {
             });
         }
 
-        if (keys['s'] && this.dashCooldown <= 0) {
-            this.vx *= 2;
+        if ((keys['Shift'] || keys['s']) && this.dashCooldown <= 0) {
+            // Give dash a minimum speed in movement direction
+            let dashDirection = 0;
+            if (keys['a'] || keys['ArrowLeft']) dashDirection = -1;
+            else if (keys['d'] || keys['ArrowRight']) dashDirection = 1;
+            else dashDirection = this.vx > 0 ? 1 : -1; // Use last direction
+            
+            this.vx = dashDirection * 15; // Fixed dash speed
             this.dashCooldown = 60;
             this.createDashParticles();
             sendGameEvent('player_dash', {
@@ -103,6 +113,7 @@ class Player {
 
         this.grounded = false;
         this.collideWithPlatforms();
+        this.collideWithGates();
         this.collectItems();
         this.checkEnemies();
 
@@ -142,6 +153,26 @@ class Player {
         }
     }
 
+    collideWithGates() {
+        for (let gate of gates) {
+            if (gate.blocksPlayer(this)) {
+                // Push player back
+                this.x = gate.x - this.width - 1;
+                this.vx = 0;
+                
+                // Send event about gate blocking
+                sendGameEvent('gate_blocked', {
+                    playerX: this.x,
+                    playerY: this.y,
+                    gateX: gate.x,
+                    required: gate.requiredCollections,
+                    collected: totalCollectibles - collectibles.length
+                });
+                break;
+            }
+        }
+    }
+
     collectItems() {
         for (let i = collectibles.length - 1; i >= 0; i--) {
             let item = collectibles[i];
@@ -154,8 +185,20 @@ class Player {
                     itemY: item.y,
                     playerX: this.x,
                     playerY: this.y,
-                    newScore: score
+                    newScore: score,
+                    remaining: collectibles.length
                 });
+                
+                // Check win condition
+                if (collectibles.length === 0 && winCondition === 'collect_all') {
+                    gameState = 'won';
+                    sendGameEvent('game_victory', {
+                        winCondition: 'collect_all',
+                        finalScore: score,
+                        timeToComplete: gameTime,
+                        finalHealth: this.health
+                    });
+                }
             }
         }
     }
@@ -165,8 +208,8 @@ class Player {
         
         for (let enemy of enemies) {
             if (dist(this.x + this.width/2, this.y + this.height/2, enemy.x, enemy.y) < 25) {
-                this.health -= 1;
-                this.invincibilityFrames = 60; // 1 second of invincibility
+                this.health -= 0.5; // Half damage
+                this.invincibilityFrames = 120; // 2 seconds of invincibility
                 sendGameEvent('player_damage', {
                     playerX: this.x,
                     playerY: this.y,
@@ -381,6 +424,12 @@ class Collectible {
     draw() {
         push();
         translate(-camera.x, -camera.y);
+        
+        // Add outer glow for visibility
+        fill(255, 255, 0, 50);
+        noStroke();
+        ellipse(this.x, this.y, 40, 40);
+        
         translate(this.x, this.y);
         rotate(this.angle);
         
@@ -462,15 +511,96 @@ function setup() {
     camera = new Camera();
     
     generateWorld();
+    totalCollectibles = collectibles.length;
     
     sendGameEvent('game_start', {
         playerX: player.x,
         playerY: player.y,
         worldWidth: WORLD_WIDTH,
         worldHeight: WORLD_HEIGHT,
-        totalCollectibles: collectibles.length,
-        totalEnemies: enemies.length
+        totalCollectibles: totalCollectibles,
+        totalEnemies: enemies.length,
+        winCondition: winCondition
     });
+}
+
+class Gate {
+    constructor(x, y, requiredCollections) {
+        this.x = x;
+        this.y = y;
+        this.width = 20;
+        this.height = 200;
+        this.requiredCollections = requiredCollections;
+        this.isOpen = false;
+        this.glow = 0;
+    }
+
+    update() {
+        this.glow = sin(gameTime * 0.1) * 30 + 50;
+        let collected = totalCollectibles - collectibles.length;
+        this.isOpen = collected >= this.requiredCollections;
+    }
+
+    draw() {
+        push();
+        translate(-camera.x, -camera.y);
+        
+        if (this.isOpen) {
+            // Open gate - just visual markers
+            fill(0, 255, 0, 100);
+            stroke(0, 255, 0, this.glow);
+        } else {
+            // Closed gate - solid barrier
+            fill(255, 0, 0, 150);
+            stroke(255, 0, 0, this.glow);
+        }
+        
+        strokeWeight(3);
+        rect(this.x, this.y, this.width, this.height);
+        
+        // Display requirement
+        fill(255, 255, 255);
+        textAlign(CENTER);
+        textSize(12);
+        let collected = totalCollectibles - collectibles.length;
+        text(`${collected}/${this.requiredCollections}`, this.x + this.width/2, this.y - 10);
+        textAlign(LEFT);
+        
+        pop();
+    }
+
+    blocksPlayer(player) {
+        if (this.isOpen) return false;
+        
+        return player.x < this.x + this.width &&
+               player.x + player.width > this.x &&
+               player.y < this.y + this.height &&
+               player.y + player.height > this.y;
+    }
+}
+
+function checkWinConditions() {
+    // Only allow reaching end if all gates are open (requires collecting items)
+    if (player.x >= WORLD_WIDTH - 100 && gates.every(gate => gate.isOpen)) {
+        gameState = 'won';
+        sendGameEvent('game_victory', {
+            winCondition: 'reach_end',
+            finalScore: score,
+            timeToComplete: gameTime,
+            finalHealth: player.health
+        });
+    }
+    
+    // Survival time (2 minutes) - only if significant progress made
+    if (gameTime >= 7200 && (totalCollectibles - collectibles.length) >= 25) {
+        gameState = 'won';
+        sendGameEvent('game_victory', {
+            winCondition: 'survive_time',
+            finalScore: score,
+            timeToComplete: gameTime,
+            finalHealth: player.health
+        });
+    }
 }
 
 function generateWorld() {
@@ -479,27 +609,63 @@ function generateWorld() {
         platforms.push(new Platform(i, WORLD_HEIGHT - 50, 200, 50, 'cyber'));
     }
     
-    // Floating platforms
-    for (let i = 0; i < 30; i++) {
-        let x = random(200, WORLD_WIDTH - 200);
-        let y = random(200, WORLD_HEIGHT - 200);
-        let w = random(100, 300);
-        let h = random(20, 40);
-        platforms.push(new Platform(x, y, w, h, random() > 0.5 ? 'cyber' : 'normal'));
+    // Create logical platform paths
+    generatePlatformPath();
+    
+    // Place collectibles on platforms
+    placeCollectiblesOnPlatforms();
+    
+    // Enemies - place strategically near gates and critical paths
+    let criticalPositions = [
+        {x: 600, y: WORLD_HEIGHT - 150}, // Before first gate
+        {x: 1000, y: WORLD_HEIGHT - 150}, // After first gate
+        {x: 1400, y: WORLD_HEIGHT - 150}, // Before second gate
+        {x: 1800, y: WORLD_HEIGHT - 150}, // After second gate
+        {x: 2200, y: WORLD_HEIGHT - 150}, // Before third gate
+        {x: 2600, y: WORLD_HEIGHT - 150}, // After third gate
+    ];
+    
+    // Place enemies at critical positions
+    for (let pos of criticalPositions) {
+        enemies.push(new Enemy(pos.x, pos.y));
     }
     
-    // Collectibles
-    for (let i = 0; i < 50; i++) {
-        let x = random(100, WORLD_WIDTH - 100);
-        let y = random(100, WORLD_HEIGHT - 100);
-        collectibles.push(new Collectible(x, y));
-    }
-    
-    // Enemies
-    for (let i = 0; i < 15; i++) {
+    // Add some random enemies
+    for (let i = 0; i < 9; i++) {
         let x = random(200, WORLD_WIDTH - 200);
         let y = random(200, WORLD_HEIGHT - 200);
         enemies.push(new Enemy(x, y));
+    }
+    
+    // Gates that require collections to pass - balanced requirements
+    gates.push(new Gate(800, WORLD_HEIGHT - 250, 3));   // Need 3 stars
+    gates.push(new Gate(1600, WORLD_HEIGHT - 250, 8));  // Need 8 stars
+    gates.push(new Gate(2400, WORLD_HEIGHT - 250, 15)); // Need 15 stars
+}
+
+function generatePlatformPath() {
+    let currentX = 200;
+    let currentY = WORLD_HEIGHT - 200;
+    
+    for (let i = 0; i < 30; i++) {
+        let width = random(100, 250);
+        let height = random(20, 40);
+        platforms.push(new Platform(currentX, currentY, width, height, random() > 0.5 ? 'cyber' : 'normal'));
+        
+        // Next platform within jump range
+        currentX += random(80, 200); // Jumpable distance
+        currentY += random(-100, 50); // Varied height
+        currentY = constrain(currentY, 200, WORLD_HEIGHT - 100);
+    }
+}
+
+function placeCollectiblesOnPlatforms() {
+    for (let platform of platforms) {
+        if (random() < 0.6) { // 60% chance per platform
+            let x = platform.x + random(20, platform.width - 20);
+            let y = platform.y - 25; // Above platform
+            collectibles.push(new Collectible(x, y));
+        }
     }
 }
 
@@ -507,21 +673,28 @@ function draw() {
     background(5, 5, 20);
     gameTime++;
     
-    // Update
-    player.update();
-    camera.update();
-    
-    // Send periodic position updates (throttled)
-    if (gameTime % 60 === 0) {
-        sendGameEvent('player_position', {
-            x: player.x,
-            y: player.y,
-            vx: player.vx,
-            vy: player.vy,
-            health: player.health,
-            score: score,
-            gameTime: gameTime
-        });
+    // Only update game if still playing
+    if (gameState === 'playing') {
+        // Update
+        player.update();
+        camera.update();
+        
+        // Check additional win conditions
+        checkWinConditions();
+        
+        // Send periodic position updates (throttled)
+        if (gameTime % 60 === 0) {
+            sendGameEvent('player_position', {
+                x: player.x,
+                y: player.y,
+                vx: player.vx,
+                vy: player.vy,
+                health: player.health,
+                score: score,
+                gameTime: gameTime,
+                collectiblesRemaining: collectibles.length
+            });
+        }
     }
     
     for (let platform of platforms) {
@@ -543,6 +716,10 @@ function draw() {
         enemy.update();
     }
     
+    for (let gate of gates) {
+        gate.update();
+    }
+    
     // Draw world
     drawBackground();
     
@@ -560,6 +737,10 @@ function draw() {
     
     for (let enemy of enemies) {
         enemy.draw();
+    }
+    
+    for (let gate of gates) {
+        gate.draw();
     }
     
     player.draw();
@@ -601,17 +782,63 @@ function drawHUD() {
     fill(0, 255, 0);
     rect(20, 20, (player.health / 100) * 200, 20);
     
-    // Score
+    // Score and progress
     fill(0, 255, 255);
     textSize(20);
     text(`Score: ${score}`, 20, 60);
     
-    // Instructions
-    fill(255, 255, 255, 150);
+    // Progress indicators
+    fill(255, 255, 0);
+    textSize(16);
+    text(`Stars: ${totalCollectibles - collectibles.length}/${totalCollectibles}`, 20, 85);
+    
+    // Time
+    let minutes = Math.floor(gameTime / 3600);
+    let seconds = Math.floor((gameTime % 3600) / 60);
+    text(`Time: ${minutes}:${seconds.toString().padStart(2, '0')}`, 20, 110);
+    
+    // Win conditions
+    fill(255, 255, 255, 180);
     textSize(14);
-    text("WASD/Arrow Keys: Move & Jump", 20, height - 60);
-    text("S: Dash (cooldown)", 20, height - 40);
-    text("Collect stars, avoid red enemies!", 20, height - 20);
+    text("WIN CONDITIONS:", 20, height - 120);
+    text(`• Collect all ${totalCollectibles} stars`, 20, height - 100);
+    text("• Reach the end of the world", 20, height - 80);
+    text("• Survive for 2 minutes", 20, height - 60);
+    
+    // Next gate info
+    let nextGate = null;
+    let collected = totalCollectibles - collectibles.length;
+    for (let gate of gates) {
+        if (!gate.isOpen) {
+            nextGate = gate;
+            break;
+        }
+    }
+    
+    if (nextGate) {
+        fill(255, 255, 0);
+        textSize(16);
+        text(`Next Gate: ${collected}/${nextGate.requiredCollections} stars`, 20, 135);
+    }
+    
+    // Controls
+    fill(255, 255, 255, 150);
+    textSize(12);
+    text("WASD/Arrow Keys: Move & Jump | Shift/S: Dash", 20, height - 20);
+    
+    // Victory message
+    if (gameState === 'won') {
+        fill(0, 255, 0, 200);
+        rect(width/2 - 150, height/2 - 50, 300, 100);
+        fill(255, 255, 255);
+        textAlign(CENTER);
+        textSize(24);
+        text("VICTORY!", width/2, height/2 - 20);
+        textSize(16);
+        text(`Final Score: ${score}`, width/2, height/2 + 10);
+        text(`Time: ${Math.floor(gameTime/3600)}:${Math.floor((gameTime%3600)/60).toString().padStart(2,'0')}`, width/2, height/2 + 30);
+        textAlign(LEFT);
+    }
     
     // Dash cooldown indicator
     if (player.dashCooldown > 0) {
