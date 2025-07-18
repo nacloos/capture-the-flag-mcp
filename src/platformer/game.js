@@ -1,0 +1,538 @@
+let player;
+let camera;
+let world;
+let platforms = [];
+let particles = [];
+let collectibles = [];
+let enemies = [];
+let gameTime = 0;
+let score = 0;
+let keys = {};
+
+const WORLD_WIDTH = 3000;
+const WORLD_HEIGHT = 1200;
+const GRAVITY = 0.5;
+const PLAYER_SPEED = 6;
+const JUMP_FORCE = -12;
+
+class Player {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.width = 20;
+        this.height = 30;
+        this.grounded = false;
+        this.health = 100;
+        this.trail = [];
+        this.dashCooldown = 0;
+    }
+
+    update() {
+        this.handleInput();
+        this.physics();
+        this.updateTrail();
+        this.dashCooldown = max(0, this.dashCooldown - 1);
+    }
+
+    handleInput() {
+        if (keys['a'] || keys['ArrowLeft']) {
+            this.vx = -PLAYER_SPEED;
+        } else if (keys['d'] || keys['ArrowRight']) {
+            this.vx = PLAYER_SPEED;
+        } else {
+            this.vx *= 0.8;
+        }
+
+        if ((keys['w'] || keys['ArrowUp'] || keys[' ']) && this.grounded) {
+            this.vy = JUMP_FORCE;
+            this.grounded = false;
+            this.createJumpParticles();
+        }
+
+        if (keys['s'] && this.dashCooldown <= 0) {
+            this.vx *= 2;
+            this.dashCooldown = 60;
+            this.createDashParticles();
+        }
+    }
+
+    physics() {
+        this.vy += GRAVITY;
+        this.x += this.vx;
+        this.y += this.vy;
+
+        this.grounded = false;
+        this.collideWithPlatforms();
+        this.collectItems();
+        this.checkEnemies();
+
+        if (this.y > WORLD_HEIGHT) {
+            this.respawn();
+        }
+    }
+
+    collideWithPlatforms() {
+        for (let platform of platforms) {
+            if (this.x < platform.x + platform.width &&
+                this.x + this.width > platform.x &&
+                this.y < platform.y + platform.height &&
+                this.y + this.height > platform.y) {
+                
+                let overlapX = min(this.x + this.width - platform.x, platform.x + platform.width - this.x);
+                let overlapY = min(this.y + this.height - platform.y, platform.y + platform.height - this.y);
+                
+                if (overlapX < overlapY) {
+                    if (this.x < platform.x) {
+                        this.x = platform.x - this.width;
+                    } else {
+                        this.x = platform.x + platform.width;
+                    }
+                    this.vx = 0;
+                } else {
+                    if (this.y < platform.y) {
+                        this.y = platform.y - this.height;
+                        this.vy = 0;
+                        this.grounded = true;
+                    } else {
+                        this.y = platform.y + platform.height;
+                        this.vy = 0;
+                    }
+                }
+            }
+        }
+    }
+
+    collectItems() {
+        for (let i = collectibles.length - 1; i >= 0; i--) {
+            let item = collectibles[i];
+            if (dist(this.x + this.width/2, this.y + this.height/2, item.x, item.y) < 20) {
+                score += 10;
+                collectibles.splice(i, 1);
+                this.createCollectParticles(item.x, item.y);
+            }
+        }
+    }
+
+    checkEnemies() {
+        for (let enemy of enemies) {
+            if (dist(this.x + this.width/2, this.y + this.height/2, enemy.x, enemy.y) < 25) {
+                this.health -= 1;
+                if (this.health <= 0) {
+                    this.respawn();
+                }
+            }
+        }
+    }
+
+    respawn() {
+        this.x = 100;
+        this.y = 100;
+        this.vx = 0;
+        this.vy = 0;
+        this.health = 100;
+    }
+
+    updateTrail() {
+        this.trail.push({x: this.x + this.width/2, y: this.y + this.height/2});
+        if (this.trail.length > 10) {
+            this.trail.shift();
+        }
+    }
+
+    createJumpParticles() {
+        for (let i = 0; i < 5; i++) {
+            particles.push(new Particle(this.x + this.width/2, this.y + this.height, 0, random(-2, 2), color(0, 255, 255, 150)));
+        }
+    }
+
+    createDashParticles() {
+        for (let i = 0; i < 8; i++) {
+            particles.push(new Particle(this.x + this.width/2, this.y + this.height/2, random(-3, 3), random(-3, 3), color(255, 0, 255, 200)));
+        }
+    }
+
+    createCollectParticles(x, y) {
+        for (let i = 0; i < 10; i++) {
+            particles.push(new Particle(x, y, random(-4, 4), random(-4, 4), color(255, 255, 0, 200)));
+        }
+    }
+
+    draw() {
+        push();
+        translate(-camera.x, -camera.y);
+        
+        // Draw trail
+        stroke(0, 255, 255, 100);
+        strokeWeight(3);
+        noFill();
+        beginShape();
+        for (let point of this.trail) {
+            vertex(point.x, point.y);
+        }
+        endShape();
+        
+        // Draw player with glow effect
+        fill(0, 255, 255);
+        stroke(255);
+        strokeWeight(2);
+        rect(this.x, this.y, this.width, this.height, 5);
+        
+        // Draw eyes
+        fill(255, 0, 255);
+        noStroke();
+        ellipse(this.x + 5, this.y + 8, 4, 4);
+        ellipse(this.x + 15, this.y + 8, 4, 4);
+        
+        pop();
+    }
+}
+
+class Camera {
+    constructor() {
+        this.x = 0;
+        this.y = 0;
+        this.targetX = 0;
+        this.targetY = 0;
+    }
+
+    update() {
+        this.targetX = player.x - width/2;
+        this.targetY = player.y - height/2;
+        
+        this.x = lerp(this.x, this.targetX, 0.1);
+        this.y = lerp(this.y, this.targetY, 0.1);
+        
+        this.x = constrain(this.x, 0, WORLD_WIDTH - width);
+        this.y = constrain(this.y, 0, WORLD_HEIGHT - height);
+    }
+}
+
+class Platform {
+    constructor(x, y, w, h, type = 'normal') {
+        this.x = x;
+        this.y = y;
+        this.width = w;
+        this.height = h;
+        this.type = type;
+        this.glow = 0;
+    }
+
+    update() {
+        this.glow = sin(gameTime * 0.1) * 20 + 30;
+    }
+
+    draw() {
+        push();
+        translate(-camera.x, -camera.y);
+        
+        if (this.type === 'cyber') {
+            fill(0, 100, 200, 150);
+            stroke(0, 255, 255, this.glow);
+            strokeWeight(2);
+        } else {
+            fill(50, 50, 80);
+            stroke(100, 100, 150);
+            strokeWeight(1);
+        }
+        
+        rect(this.x, this.y, this.width, this.height, 3);
+        
+        // Add grid pattern for cyber platforms
+        if (this.type === 'cyber') {
+            stroke(0, 255, 255, 50);
+            strokeWeight(1);
+            for (let i = this.x; i < this.x + this.width; i += 20) {
+                line(i, this.y, i, this.y + this.height);
+            }
+            for (let i = this.y; i < this.y + this.height; i += 20) {
+                line(this.x, i, this.x + this.width, i);
+            }
+        }
+        
+        pop();
+    }
+}
+
+class Particle {
+    constructor(x, y, vx, vy, col) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.life = 255;
+        this.color = col;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.1;
+        this.life -= 5;
+    }
+
+    draw() {
+        if (this.life > 0) {
+            push();
+            translate(-camera.x, -camera.y);
+            fill(red(this.color), green(this.color), blue(this.color), this.life);
+            noStroke();
+            ellipse(this.x, this.y, 6, 6);
+            pop();
+        }
+    }
+
+    isDead() {
+        return this.life <= 0;
+    }
+}
+
+class Collectible {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.angle = 0;
+        this.pulse = 0;
+    }
+
+    update() {
+        this.angle += 0.1;
+        this.pulse = sin(gameTime * 0.2) * 10 + 15;
+    }
+
+    draw() {
+        push();
+        translate(-camera.x, -camera.y);
+        translate(this.x, this.y);
+        rotate(this.angle);
+        
+        fill(255, 255, 0, 200);
+        stroke(255, 255, 0, this.pulse);
+        strokeWeight(3);
+        
+        beginShape();
+        for (let i = 0; i < 6; i++) {
+            let angle = i * PI / 3;
+            let radius = i % 2 === 0 ? 12 : 6;
+            vertex(cos(angle) * radius, sin(angle) * radius);
+        }
+        endShape(CLOSE);
+        
+        pop();
+    }
+}
+
+class Enemy {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = random(-2, 2);
+        this.vy = 0;
+        this.pulse = 0;
+        this.patrolStart = x;
+        this.patrolEnd = x + random(100, 200);
+        this.direction = 1;
+    }
+
+    update() {
+        this.pulse = sin(gameTime * 0.3) * 50 + 100;
+        
+        if (this.x <= this.patrolStart || this.x >= this.patrolEnd) {
+            this.direction *= -1;
+        }
+        
+        this.x += this.direction * 1;
+        
+        // Simple gravity
+        this.vy += 0.3;
+        this.y += this.vy;
+        
+        // Ground collision
+        for (let platform of platforms) {
+            if (this.x > platform.x && this.x < platform.x + platform.width &&
+                this.y > platform.y - 15 && this.y < platform.y + 5) {
+                this.y = platform.y - 15;
+                this.vy = 0;
+            }
+        }
+    }
+
+    draw() {
+        push();
+        translate(-camera.x, -camera.y);
+        
+        fill(255, 0, 0, this.pulse);
+        stroke(255, 100, 100);
+        strokeWeight(2);
+        
+        ellipse(this.x, this.y, 20, 20);
+        
+        // Glowing eyes
+        fill(255, 255, 0);
+        noStroke();
+        ellipse(this.x - 4, this.y - 2, 3, 3);
+        ellipse(this.x + 4, this.y - 2, 3, 3);
+        
+        pop();
+    }
+}
+
+function setup() {
+    let canvas = createCanvas(800, 600);
+    canvas.parent('gameCanvas');
+    
+    player = new Player(100, 100);
+    camera = new Camera();
+    
+    generateWorld();
+}
+
+function generateWorld() {
+    // Ground platforms
+    for (let i = 0; i < WORLD_WIDTH; i += 200) {
+        platforms.push(new Platform(i, WORLD_HEIGHT - 50, 200, 50, 'cyber'));
+    }
+    
+    // Floating platforms
+    for (let i = 0; i < 30; i++) {
+        let x = random(200, WORLD_WIDTH - 200);
+        let y = random(200, WORLD_HEIGHT - 200);
+        let w = random(100, 300);
+        let h = random(20, 40);
+        platforms.push(new Platform(x, y, w, h, random() > 0.5 ? 'cyber' : 'normal'));
+    }
+    
+    // Collectibles
+    for (let i = 0; i < 50; i++) {
+        let x = random(100, WORLD_WIDTH - 100);
+        let y = random(100, WORLD_HEIGHT - 100);
+        collectibles.push(new Collectible(x, y));
+    }
+    
+    // Enemies
+    for (let i = 0; i < 15; i++) {
+        let x = random(200, WORLD_WIDTH - 200);
+        let y = random(200, WORLD_HEIGHT - 200);
+        enemies.push(new Enemy(x, y));
+    }
+}
+
+function draw() {
+    background(5, 5, 20);
+    gameTime++;
+    
+    // Update
+    player.update();
+    camera.update();
+    
+    for (let platform of platforms) {
+        platform.update();
+    }
+    
+    for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        if (particles[i].isDead()) {
+            particles.splice(i, 1);
+        }
+    }
+    
+    for (let collectible of collectibles) {
+        collectible.update();
+    }
+    
+    for (let enemy of enemies) {
+        enemy.update();
+    }
+    
+    // Draw world
+    drawBackground();
+    
+    for (let platform of platforms) {
+        platform.draw();
+    }
+    
+    for (let particle of particles) {
+        particle.draw();
+    }
+    
+    for (let collectible of collectibles) {
+        collectible.draw();
+    }
+    
+    for (let enemy of enemies) {
+        enemy.draw();
+    }
+    
+    player.draw();
+    
+    // Draw HUD
+    drawHUD();
+}
+
+function drawBackground() {
+    // Parallax stars
+    fill(255, 255, 255, 100);
+    noStroke();
+    for (let i = 0; i < 100; i++) {
+        let starX = (i * 123) % WORLD_WIDTH;
+        let starY = (i * 456) % WORLD_HEIGHT;
+        let parallaxX = starX - camera.x * 0.1;
+        let parallaxY = starY - camera.y * 0.1;
+        
+        if (parallaxX > -10 && parallaxX < width + 10 && parallaxY > -10 && parallaxY < height + 10) {
+            ellipse(parallaxX, parallaxY, 2, 2);
+        }
+    }
+    
+    // Grid lines
+    stroke(0, 255, 255, 20);
+    strokeWeight(1);
+    for (let i = -camera.x % 50; i < width; i += 50) {
+        line(i, 0, i, height);
+    }
+    for (let i = -camera.y % 50; i < height; i += 50) {
+        line(0, i, width, i);
+    }
+}
+
+function drawHUD() {
+    // Health bar
+    fill(255, 0, 0);
+    rect(20, 20, 200, 20);
+    fill(0, 255, 0);
+    rect(20, 20, (player.health / 100) * 200, 20);
+    
+    // Score
+    fill(0, 255, 255);
+    textSize(20);
+    text(`Score: ${score}`, 20, 60);
+    
+    // Instructions
+    fill(255, 255, 255, 150);
+    textSize(14);
+    text("WASD/Arrow Keys: Move & Jump", 20, height - 60);
+    text("S: Dash (cooldown)", 20, height - 40);
+    text("Collect stars, avoid red enemies!", 20, height - 20);
+    
+    // Dash cooldown indicator
+    if (player.dashCooldown > 0) {
+        fill(255, 0, 255, 150);
+        rect(250, 20, 100, 20);
+        fill(255, 0, 255);
+        rect(250, 20, (player.dashCooldown / 60) * 100, 20);
+        fill(255);
+        textSize(12);
+        text("DASH", 280, 35);
+    }
+}
+
+function keyPressed() {
+    keys[key] = true;
+    keys[keyCode] = true;
+}
+
+function keyReleased() {
+    keys[key] = false;
+    keys[keyCode] = false;
+}

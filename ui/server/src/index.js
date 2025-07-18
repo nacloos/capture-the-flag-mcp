@@ -13,6 +13,7 @@ const PORT = 3001;
 // Store running processes and their logs
 const runningProcesses = new Map();
 const processLogs = new Map(); // Persistent logs even after process ends
+const gameEvents = new Map(); // Structured game events
 
 app.use(cors());
 app.use(express.json());
@@ -236,6 +237,28 @@ app.post('/api/start/:name', async (req, res) => {
     childProcess.stdout.on('data', (data) => {
       const log = data.toString();
       const logs = processLogs.get(name);
+      
+      // Parse game events
+      if (log.includes('[GAME_EVENT]')) {
+        try {
+          const eventJson = log.split('[GAME_EVENT]')[1].trim();
+          const event = JSON.parse(eventJson);
+          
+          if (!gameEvents.has(name)) {
+            gameEvents.set(name, []);
+          }
+          const events = gameEvents.get(name);
+          events.push(event);
+          
+          // Keep only last 100 events
+          if (events.length > 100) {
+            gameEvents.set(name, events.slice(-100));
+          }
+        } catch (error) {
+          console.error('Failed to parse game event:', error);
+        }
+      }
+      
       if (logs) {
         logs.push({ type: 'stdout', message: log, timestamp: new Date() });
         // Keep only last 100 logs
@@ -368,6 +391,51 @@ app.get('/api/logs', (req, res) => {
   allLogs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   
   res.json({ logs: allLogs });
+});
+
+// POST /api/game-event - Receive game event from browser
+app.post('/api/game-event', (req, res) => {
+  try {
+    const event = req.body;
+    const folderName = 'browser-game'; // Default folder name for browser games
+    
+    if (!gameEvents.has(folderName)) {
+      gameEvents.set(folderName, []);
+    }
+    
+    const events = gameEvents.get(folderName);
+    events.push(event);
+    
+    // Keep only last 100 events
+    if (events.length > 100) {
+      gameEvents.set(folderName, events.slice(-100));
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Failed to store game event:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/events - Get all game events from all processes
+app.get('/api/events', (req, res) => {
+  const allEvents = [];
+  
+  // Collect events from all processes
+  for (const [folderName, events] of gameEvents.entries()) {
+    for (const event of events) {
+      allEvents.push({
+        ...event,
+        folder: folderName
+      });
+    }
+  }
+  
+  // Sort by timestamp
+  allEvents.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  
+  res.json({ events: allEvents });
 });
 
 // DELETE /api/delete/:name - Delete a folder and update runners.json

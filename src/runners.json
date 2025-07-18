@@ -8,19 +8,27 @@
     "port": 8081
   },
   "bees-vs-flies-v2": {
-    "command": "uv run -m http.server 8082",
+    "command": "npx http-server -c-1 -p 8082",
     "port": 8082
   },
   "bees-vs-flies-v3": {
-    "command": "uv run -m http.server 8083",
+    "command": "npx http-server -c-1 -p 8083",
     "port": 8083
   },
   "bees-vs-flies-v4": {
-    "command": "uv run -m http.server 8084",
+    "command": "npx http-server -c-1 -p 8084",
     "port": 8084
   },
   "bees-vs-flies-v5": {
-    "command": "uv run -m http.server 8085",
+    "command": "npx http-server -c-1 -p 8085",
     "port": 8085
+  },
+  "bees-vs-flies-v6": {
+    "command": "npx http-server -c-1 -p 8086",
+    "port": 8086
+  },
+  "platformer": {
+    "command": "npx http-server -c-1 -p 8087",
+    "port": 8087
   }
 }

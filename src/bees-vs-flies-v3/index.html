@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capture the Flag - Bees vs Flies</title>
+    <title>Bees vs Flies - Capture the Flag</title>
     <style>
         body {
             margin: 0;
@@ -15,21 +15,25 @@
             min-height: 100vh;
             font-family: Arial, sans-serif;
         }
-        #gameContainer {
-            border: 2px solid #333;
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
     </style>
 </head>
 <body>
-    <div id="gameContainer"></div>
+    <main>
+        <div id="game-container"></div>
+    </main>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <script src="graphics.js"></script>
     <script src="camera.js"></script>
     <script src="map.js"></script>
     <script src="combat.js"></script>
     <script src="flag.js"></script>
     <script src="player.js"></script>
-    <script src="graphics.js"></script>
     <script src="game.js"></script>
     <script src="sketch.js"></script>
 </body>

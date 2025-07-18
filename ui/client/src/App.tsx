@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Square, Loader2, AlertCircle, Terminal, Trash2 } from "lucide-react";
 
@@ -19,6 +19,14 @@ interface LogEntry {
   folder?: string;
 }
 
+interface GameEvent {
+  timestamp: string;
+  gameId: string;
+  eventType: string;
+  data: any;
+  folder?: string;
+}
+
 const API_BASE = 'http://localhost:3001/api';
 
 function App() {
@@ -27,8 +35,11 @@ function App() {
   const [runningFolder, setRunningFolder] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [allLogs, setAllLogs] = useState<LogEntry[]>([]);
+  const [gameEvents, setGameEvents] = useState<GameEvent[]>([]);
+  const eventsEndRef = useRef<HTMLDivElement>(null);
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'console' | 'events'>('console');
 
   // Fetch folders on component mount and set up polling
   useEffect(() => {
@@ -53,6 +64,31 @@ function App() {
       return () => clearInterval(interval);
     }
   }, [consoleOpen]);
+
+  // Listen for game events from iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'GAME_EVENT') {
+        setGameEvents(prev => [...prev.slice(-99), { 
+          ...event.data.event, 
+          folder: selectedFolder 
+        }]);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [selectedFolder]);
+
+  // Auto-scroll to bottom when new events arrive
+  useEffect(() => {
+    if (activeTab === 'events' && eventsEndRef.current) {
+      eventsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [gameEvents, activeTab]);
 
   const fetchFolders = async () => {
     try {
@@ -341,6 +377,10 @@ function App() {
               src={`http://localhost:${selectedFolderData.port}`}
               className="w-full h-full"
               title={selectedFolder}
+              onLoad={() => {
+                // Clear events when loading new game
+                setGameEvents([]);
+              }}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -359,24 +399,62 @@ function App() {
         {/* Console Panel */}
         {consoleOpen && (
           <div className="h-2/5 border-t border-gray-200 bg-white flex flex-col">
-            <div className="px-3 py-2 border-b border-gray-200">
-              <h3 className="text-xs font-medium">Console</h3>
+            <div className="px-3 py-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setActiveTab('console')}
+                  className={`text-xs px-2 py-1 rounded transition-colors ${
+                    activeTab === 'console' 
+                      ? 'bg-gray-200 text-gray-900 font-semibold' 
+                      : 'text-gray-900 hover:bg-gray-100 font-medium'
+                  }`}
+                >
+                  Console
+                </button>
+                <button
+                  onClick={() => setActiveTab('events')}
+                  className={`text-xs px-2 py-1 rounded transition-colors ${
+                    activeTab === 'events' 
+                      ? 'bg-gray-200 text-gray-900 font-semibold' 
+                      : 'text-gray-900 hover:bg-gray-100 font-medium'
+                  }`}
+                >
+                  Game Events
+                </button>
+              </div>
             </div>
             <div className="flex-1 px-3 py-2 overflow-y-auto">
-              <div className="font-mono text-xs leading-tight">
-                {allLogs.length > 0 ? (
-                  allLogs.map((log, index) => (
-                    <div 
-                      key={index} 
-                      className={`${log.type === 'stderr' ? 'text-red-600' : 'text-gray-700'}`}
-                    >
-                      {log.folder && <span className="text-blue-600">[{log.folder}]</span>} {log.message.trim()}
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-gray-400">No logs available</div>
-                )}
-              </div>
+              {activeTab === 'console' ? (
+                <div className="font-mono text-xs leading-tight">
+                  {allLogs.length > 0 ? (
+                    allLogs.map((log, index) => (
+                      <div 
+                        key={index} 
+                        className={`${log.type === 'stderr' ? 'text-red-600' : 'text-gray-700'}`}
+                      >
+                        {log.folder && <span className="text-blue-600">[{log.folder}]</span>} {log.message.trim()}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-400">No logs available</div>
+                  )}
+                </div>
+              ) : (
+                <div className="font-mono text-xs leading-tight">
+                  {gameEvents.length > 0 ? (
+                    gameEvents.map((event, index) => (
+                      <div key={index} className="text-gray-700">
+                        {event.folder && <span className="text-blue-600">[{event.folder}]</span>}{' '}
+                        <span className="text-purple-600">{event.eventType}</span>{' '}
+                        <span className="text-gray-600">{JSON.stringify(event.data)}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-gray-400">No game events yet</div>
+                  )}
+                  <div ref={eventsEndRef} />
+                </div>
+              )}
             </div>
           </div>
         )}

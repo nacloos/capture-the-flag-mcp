@@ -45,7 +45,7 @@ Application event logging:
 * apps should throttle high-frequency events to prevent spam
 
 Runners configuration:
-* uses npx live-server with --no-cache flag to prevent browser caching issues
+* uses `npx http-server -c-1` to prevent browser caching issues
 
 Tech stack:
 * react
